@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/feed_entry_context_menu_header">
+
+	<item
+		android:id="@+id/feed_entry_context_menu_play"
+		android:title="@string/context_menu_play_label" />
+		
+	<!-- item
+		android:id="@+id/feed_entry_context_menu_download"
+		android:title="@string/context_menu_download_label" / -->
+    	
+</menu>

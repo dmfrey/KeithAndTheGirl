@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+		android:id="@+id/feed_menu_refresh"
+		android:title="@string/menu_refresh_label" />
+		
+    <item
+		android:id="@+id/feed_menu_about"
+		android:title="@string/menu_about_label"
+		android:icon="@android:drawable/ic_menu_info_details" />
+
+    <item
+		android:id="@+id/feed_menu_quit"
+		android:title="@string/menu_quit_label"
+		android:icon="@android:drawable/ic_menu_close_clear_cancel" />
+
+</menu>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:id="@+id/katg_header"
+    	android:layout_width="fill_parent"
+    	android:layout_height="?android:attr/listPreferredItemHeight"
+    	android:gravity="center"
+    	android:background="@drawable/katg_background"
+    	android:layout_alignParentTop="true">
+    
+    	<ImageView
+        	android:id="@+id/katg_header_logo"
+        	android:src="@drawable/katg_header_logo"
+        	android:contentDescription="@string/katg_header_logo_description"
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content" />
+    
+    	<ImageView
+        	android:id="@+id/katg_header_text"
+	        android:src="@drawable/katg_header_text"
+        	android:contentDescription="@string/katg_header_text_description"
+    	    android:layout_width="wrap_content"
+        	android:layout_height="wrap_content" />
+
+	</LinearLayout>
+
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:id="@+id/katg_menu"
+    	android:layout_width="fill_parent"
+    	android:layout_height="wrap_content"
+    	android:background="#a9acac"
+        android:layout_below="@+id/katg_header">
+
+	   	<Button
+        	android:id="@+id/www_button"
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:text="@string/www_label" />
+    	
+	   	<Button
+        	android:id="@+id/live_button"
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:text="@string/live_label"
+        	android:enabled="false" />
+	   	
+	</LinearLayout>
+	
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:id="@+id/katg_footer"
+    	android:layout_width="fill_parent"
+    	android:layout_height="wrap_content"
+    	android:background="#a9acac"
+    	android:layout_alignParentBottom="true"
+        android:padding="6dip">
+
+    	<Button
+        	android:id="@+id/stop_button"
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:text="@string/stop_label" />
+    	
+    	<TextView 
+        	android:id="@+id/now_playing"
+        	android:layout_width="fill_parent"
+        	android:layout_height="wrap_content"
+        	android:text="@string/empty" />
+
+    </LinearLayout>
+	
+	<ListView
+  		android:id="@+android:id/list"
+  		android:layout_width="match_parent"
+  		android:layout_height="wrap_content"
+  		android:layout_below="@+id/katg_menu"
+  		android:layout_above="@+id/katg_footer" >
+	</ListView>
+
+</RelativeLayout>
