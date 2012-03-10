@@ -23,6 +23,7 @@
 	
     <string name="live_label">Listen Live!</string>
     <string name="call_label">Call</string>
+    <string name="play_label">Play</string>
     <string name="pause_label">Pause</string>
     <string name="stop_label">Stop</string>
     <string name="now_playing_label">Now Playing...</string>

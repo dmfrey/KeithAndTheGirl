@@ -7,7 +7,7 @@
     
     <ImageView
         android:id="@+id/entry_play"
-        android:contentDescription="play button"
+        android:contentDescription="@string/play_label"
         android:layout_width="wrap_content"
         android:layout_height="fill_parent"
         android:layout_marginRight="6dip"/>
@@ -22,7 +22,6 @@
             android:id="@+id/entry_title"
             android:layout_width="fill_parent"
             android:layout_height="0dip"
-            android:layout_weight="1"
             android:singleLine="true"
             android:ellipsize="marquee"
             android:textStyle="bold"
@@ -32,7 +31,6 @@
             android:id="@+id/entry_description"
             android:layout_width="fill_parent"
             android:layout_height="0dip"
-            android:layout_weight="1"
             android:singleLine="true"
             android:ellipsize="marquee"
         />
@@ -41,7 +39,6 @@
             android:id="@+id/entry_date"
             android:layout_width="fill_parent"
             android:layout_height="0dip"
-            android:layout_weight="1"
             android:singleLine="true"
             android:ellipsize="marquee"
         />
