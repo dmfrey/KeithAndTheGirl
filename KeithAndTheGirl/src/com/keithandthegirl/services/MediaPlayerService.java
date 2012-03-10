@@ -23,13 +23,11 @@ package com.keithandthegirl.services;
 
 import java.io.IOException;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -37,8 +35,6 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.Syn
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEntry;
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
-import com.keithandthegirl.R;
-import com.keithandthegirl.activities.FeedActivity;
 
 /**
  * @author Daniel Frey
@@ -47,6 +43,10 @@ import com.keithandthegirl.activities.FeedActivity;
 public class MediaPlayerService extends Service {
 
 	private static final String TAG = MediaPlayerService.class.getSimpleName();
+
+    public static final String BROADCAST_ACTION = "com.keithandthegirl.broadcast.mediaPlayerStopped";
+    private final Handler handler = new Handler();
+	private Intent broadcastIntent;
 
 	private MainApplication applicationContext;
 	private PlayType currentPlayType;
@@ -66,6 +66,8 @@ public class MediaPlayerService extends Service {
 		super.onCreate();
 		Log.d( TAG, "onCreate : enter" );
 		
+		broadcastIntent = new Intent( BROADCAST_ACTION );	
+
 		mp = new MediaPlayer();
 		mp.setLooping( false );
 		
@@ -97,6 +99,9 @@ public class MediaPlayerService extends Service {
 		Log.d( TAG, "onStart : enter" );
 
 		applicationContext = (MainApplication) getApplicationContext();
+		
+		handler.removeCallbacks( sendUpdatesToUI );
+
 		currentPlayType = applicationContext.getSelectedPlayType();
 
 		switch( currentPlayType ) {
@@ -112,8 +117,7 @@ public class MediaPlayerService extends Service {
 			default:
 				break;
 		}
-		
-		
+	
 		Log.d( TAG, "onStart : exit" );
 	}
 
@@ -125,6 +129,20 @@ public class MediaPlayerService extends Service {
 		return null;
 	}
 
+	// internal helpers
+	
+	private Runnable sendUpdatesToUI = new Runnable() {
+	    
+		public void run() {
+			Log.d( TAG, "Thread.sendUpdatesToUI.run : enter" );
+
+			sendBroadcast( broadcastIntent );
+
+    	    Log.d( TAG, "Thread.sendUpdatesToUI.run : exit" );
+    	}
+
+	};
+    
 	private void clearNotification() {
 		Log.d( TAG, "clearNotification : enter" );
 
@@ -145,6 +163,8 @@ public class MediaPlayerService extends Service {
 
 			public void onCompletion( MediaPlayer arg0 ) {
 //				clearNotification();
+				
+				handler.postDelayed( sendUpdatesToUI, 1000 ); // 1 second
 			}
 		});
 

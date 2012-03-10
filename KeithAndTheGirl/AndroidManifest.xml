@@ -37,7 +37,9 @@
 			android:theme="@android:style/Theme.Light.NoTitleBar" />
 		
 		<service android:enabled="true" android:name=".services.MediaPlayerService" />
-		
+		<service android:enabled="true" android:name=".services.UpdateFeedService" />
+		<service android:enabled="true" android:name=".services.UpdateCalendarService" />
+				
 	</application>
 
 </manifest>

@@ -27,6 +27,7 @@ import android.app.Application;
 
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEntry;
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndFeed;
+import com.keithandthegirl.api.google.Feed;
 
 /**
  * @author Daniel Frey
@@ -34,10 +35,11 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.Syn
  */
 public class MainApplication extends Application {
 
-	public static final String KATG_CALENDAR_FEED = "http://www.google.com/calendar/feeds/katgcalendar@gmail.com/public/full?alt=json&orderby=starttime&max-results=1&singleevents=true&sortorder=ascending";
+	public static final String KATG_CALENDAR_FEED = "http://www.google.com/calendar/feeds/katgcalendar@gmail.com/public/full?orderby=starttime&max-results=1&singleevents=true&sortorder=ascending&futureevents=true&key=AIzaSyBgDE29wuN7U53aJzFWKJ2gzBYBxLLZmF4";
 	public static final String KATG_WEB_SITE = "http://www.keithandthegirl.com";
 	public static final String KATG_LIVE_STREAM = "http://liveshow.keithandthegirl.com:8004/";
 	public static final String KATG_RSS_FEED = "http://www.keithandthegirl.com/rss/";
+	public static final String KATG_PHONE_NUMBER = "6465028682";
 
 	public enum PlayType{ LIVE, RECORDED };
 
@@ -49,12 +51,15 @@ public class MainApplication extends Application {
 	
 	private PlayType selectedPlayType;
 	
+	private Feed calendarFeed;
+	
 	//***************************************
     // Application methods
     //***************************************
 	@Override
 	public void onCreate() {
 		super.onCreate();
+		
 	}
 
 	
@@ -73,7 +78,7 @@ public class MainApplication extends Application {
 	public SimpleDateFormat getFormat() {
 		return format;
 	}
-
+	
 	/**
 	 * @return the feed
 	 */
@@ -84,7 +89,7 @@ public class MainApplication extends Application {
 	/**
 	 * @param feed the feed to set
 	 */
-	public void setFeed(SyndFeed feed) {
+	public void setFeed( SyndFeed feed ) {
 		this.feed = feed;
 	}
 
@@ -118,6 +123,22 @@ public class MainApplication extends Application {
 	 */
 	public void setSelectedPlayType( PlayType selectedPlayType ) {
 		this.selectedPlayType = selectedPlayType;
+	}
+
+
+	/**
+	 * @return the feed
+	 */
+	public Feed getCalendarFeed() {
+		return calendarFeed;
+	}
+
+
+	/**
+	 * @param events the events to set
+	 */
+	public void setCalendarFeed( Feed calendarFeed ) {
+		this.calendarFeed = calendarFeed;
 	}
 
 }

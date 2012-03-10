@@ -48,6 +48,33 @@
         	android:text="@string/live_label"
         	android:enabled="false" />
 	   	
+	   	<Button
+        	android:id="@+id/call_button"
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:text="@string/call_label"
+        	android:enabled="false" />
+	   	
+		<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+		    android:id="@+id/katg_info"
+	    	android:layout_width="wrap_content"
+    		android:layout_height="wrap_content"
+    		android:orientation="vertical">
+
+    		<TextView 
+    	    	android:id="@+id/next_show_label"
+	        	android:layout_width="fill_parent"
+        		android:layout_height="wrap_content"
+        		android:text="@string/next_show_label" />
+    	
+    		<TextView 
+	        	android:id="@+id/next_show"
+        		android:layout_width="fill_parent"
+        		android:layout_height="wrap_content"
+    	    	android:text="" />
+    	
+	   	</LinearLayout>
+	
 	</LinearLayout>
 	
 	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"

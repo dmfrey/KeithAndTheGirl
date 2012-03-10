@@ -21,12 +21,15 @@
  */
 package com.keithandthegirl.activities;
 
-import java.net.URL;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-import android.media.MediaPlayer;
+import android.content.IntentFilter;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -46,12 +49,14 @@ import android.widget.TextView;
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEnclosure;
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEntry;
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndFeed;
-import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.FeedFetcher;
-import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.HttpURLFeedFetcher;
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
+import com.keithandthegirl.api.google.Feed;
+import com.keithandthegirl.api.google.When;
 import com.keithandthegirl.services.MediaPlayerService;
+import com.keithandthegirl.services.UpdateCalendarService;
+import com.keithandthegirl.services.UpdateFeedService;
 
 /**
  * @author Daniel Frey
@@ -60,9 +65,12 @@ import com.keithandthegirl.services.MediaPlayerService;
 public class FeedActivity extends AbstractKatgListActivity implements OnClickListener {
 
 	private static final String TAG = FeedActivity.class.getSimpleName();
+	private static final DateTimeFormatter fmt = DateTimeFormat.forPattern( "MMM dd '@' hh:mm a" );
+
+	private Intent mediaPlayerReceiverIntent, feedReceiverIntent, calendarReceiverIntent;
 	
-	private Button liveButton, stopButton, wwwButton;
-	private TextView nowPlaying;
+	private Button liveButton, callButton, stopButton, wwwButton;
+	private TextView nowPlaying, nextShow;
 	
 	//***************************************
     // Activity methods
@@ -79,13 +87,20 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 
 	    setContentView( R.layout.main );
 	    
-//	    liveButton = (Button) findViewById( R.id.live_button );
+	    mediaPlayerReceiverIntent = new Intent( this, MediaPlayerService.class );
+	    feedReceiverIntent = new Intent( this, UpdateFeedService.class );
+	    calendarReceiverIntent = new Intent( this, UpdateCalendarService.class );
+	    
+	    liveButton = (Button) findViewById( R.id.live_button );
+	    callButton = (Button) findViewById( R.id.call_button );
 	    stopButton = (Button) findViewById( R.id.stop_button );
 	    wwwButton = (Button) findViewById( R.id.www_button );
 	    
 	    nowPlaying = (TextView) findViewById( R.id.now_playing );
+	    nextShow = (TextView) findViewById( R.id.next_show );
 	    
-//	    liveButton.setOnClickListener( this );
+	    liveButton.setOnClickListener( this );
+	    callButton.setOnClickListener( this );
 	    stopButton.setOnClickListener( this );
 	    wwwButton.setOnClickListener( this );
 	    
@@ -105,6 +120,26 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	}
 
 	/* (non-Javadoc)
+	 * @see android.app.Activity#onPause()
+	 */
+	@Override
+	protected void onPause() {
+	    Log.d( TAG, "onPause : enter" );
+
+		super.onPause();
+		
+		unregisterReceiver( mediaPlayerBroadcastReceiver );
+
+		unregisterReceiver( updateFeedBroadcastReceiver );
+		stopService( feedReceiverIntent ); 		
+
+		unregisterReceiver( updateCalendarBroadcastReceiver );
+		stopService( calendarReceiverIntent ); 		
+		
+	    Log.d( TAG, "onPause : exit" );
+	}
+
+	/* (non-Javadoc)
 	 * @see android.app.Activity#onResume()
 	 */
 	@Override
@@ -113,8 +148,24 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 
 	    super.onResume();
 
-	    refreshFeed();
-	    updateNowPlaying();
+		registerReceiver( mediaPlayerBroadcastReceiver, new IntentFilter( MediaPlayerService.BROADCAST_ACTION ) );
+
+		registerReceiver( updateFeedBroadcastReceiver, new IntentFilter( UpdateFeedService.BROADCAST_ACTION ) );
+		if( null == getApplicationContext().getFeed() ) {
+		    startService( feedReceiverIntent );
+		} else {
+			refreshLiveStreamInfo();
+		}
+
+		registerReceiver( updateCalendarBroadcastReceiver, new IntentFilter( UpdateCalendarService.BROADCAST_ACTION ) );
+		if( null == getApplicationContext().getCalendarFeed() ) {
+			startService( calendarReceiverIntent );
+			showProgressDialog();
+		} else {
+			refreshFeedEntries();
+		}
+		
+		updateNowPlaying();
 	    
 		Log.d( TAG, "onResume : exit" );
 	}
@@ -144,8 +195,10 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	    switch( item.getItemId() ) {
 	    case R.id.feed_menu_refresh:
 	    	
-	    	getApplicationContext().setFeed( null );
-	    	refreshFeed();
+		    startService( feedReceiverIntent );
+
+		    startService( calendarReceiverIntent );
+			showProgressDialog();
 
 	    	Log.d( TAG, "onOptionsItemSelected : exit, refresh option selected" );
 	    	return true;
@@ -158,7 +211,6 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	    	return true;
 	    case R.id.feed_menu_quit:
 		    stopService( new Intent( this, MediaPlayerService.class ) );
-			clearNowPlaying();
 
 			finish();
 	    	
@@ -221,14 +273,16 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	public void onClick( View v ) {
 		Log.d( TAG, "onClick : enter" );
 		
+		Uri uri;
+		
 		switch( v.getId() ) {
-//			case R.id.live_button :
-//				Log.v( TAG, "onClick : live button pressed" );
-//				
-//				getApplicationContext().setSelectedPlayType( PlayType.LIVE );
-//				new VerifyLiveStreamTask().execute( MainApplication.KATG_LIVE_STREAM );
-//				
-//				break;
+			case R.id.live_button :
+				Log.v( TAG, "onClick : live button pressed" );
+				
+				getApplicationContext().setSelectedPlayType( PlayType.LIVE );
+				play();
+				
+				break;
 			case R.id.stop_button :
 				Log.v( TAG, "onClick : stop button pressed" );
 				
@@ -239,8 +293,16 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 		    case R.id.www_button:
 		    	Log.d( TAG, "onClick : www button pressed" );
 
-				Uri uri = Uri.parse( MainApplication.KATG_WEB_SITE );
+				uri = Uri.parse( MainApplication.KATG_WEB_SITE );
 				Intent intent = new Intent( Intent.ACTION_VIEW, uri );
+				startActivity( intent );
+				
+		    	break;
+		    case R.id.call_button :
+		    	Log.d( TAG, "onClick : call button pressed" );
+
+		    	uri = Uri.parse( "tel:" + MainApplication.KATG_PHONE_NUMBER );
+				intent = new Intent( Intent.ACTION_DIAL, uri );
 				startActivity( intent );
 				
 		    	break;
@@ -257,108 +319,7 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	//***************************************
     // Private methods
     //***************************************
-//	private class VerifyLiveStreamTask extends AsyncTask<String, Void, Void> {
-//		
-//		private Exception exception;
-//		
-//		@Override
-//		protected void onPreExecute() {
-//			showProgressDialog(); 
-//		}
-//		
-//		@Override
-//		protected Void doInBackground( String... params ) {
-//			try {
-//				MediaPlayer mp = new MediaPlayer();
-//				mp.setLooping( false );
-//				mp.setDataSource( MainApplication.KATG_LIVE_STREAM );
-//				mp.prepareAsync();
-//				mp.start();
-//				mp.stop();
-//				mp.release();
-//			} catch( Exception e ) {
-//				Log.e( TAG, e.getLocalizedMessage(), e );
-//				exception = e;
-//			}
-//			
-//			return null;
-//		}
-//		
-//		@Override
-//		protected void onPostExecute( Void v ) {
-//			dismissProgressDialog();
-//			processException( exception );
-//			
-//			if( null == exception ) {
-//				play();
-//			}
-//		}
-//	}
 
-	private class DownloadFeedTask extends AsyncTask<String, Void, SyndFeed> {
-		
-		private Exception exception;
-		
-		@Override
-		protected void onPreExecute() {
-			showProgressDialog(); 
-		}
-		
-		@Override
-		protected SyndFeed doInBackground( String... params ) {
-			try {
-				FeedFetcher feedFetcher = new HttpURLFeedFetcher();
-				return feedFetcher.retrieveFeed( new URL( params[ 0 ] ) );
-			} catch( Exception e ) {
-				Log.e( TAG, e.getLocalizedMessage(), e );
-				exception = e;
-			}
-			
-			return null;
-		}
-		
-		@Override
-		protected void onPostExecute( SyndFeed syndFeed ) {
-			dismissProgressDialog();
-			processException( exception );
-			setCurrentFeed( syndFeed );
-		}
-	}
-
-	private void setCurrentFeed( SyndFeed feed ) {
-		Log.d( TAG, "setCurrentFeed : enter" );
-
-		getApplicationContext().setFeed( feed );
-		
-		Log.d( TAG, "Title=" + ( null != feed.getTitle() ? feed.getTitle() : "" ) );
-		Log.d( TAG, "Author=" + ( null != feed.getAuthor() ? feed.getAuthor() : "" ) );
-		Log.d( TAG, "Description=" + ( null != feed.getDescription() ? feed.getDescription() : "" ) );
-		Log.d( TAG, "Encoding=" + ( null != feed.getEncoding() ? feed.getEncoding() : "" ) );
-		Log.d( TAG, "Type=" + ( null != feed.getFeedType() ? feed.getFeedType() : "" ) );
-		Log.d( TAG, "Link=" + ( null != feed.getLink() ? feed.getLink() : "" ) );
-		Log.d( TAG, "Uri=" + ( null != feed.getUri() ? feed.getUri() : "" ) );
-		Log.d( TAG, "Published Date=" + ( null != feed.getPublishedDate() ? feed.getPublishedDate() : "" ) );
-		
-		for( Object obj : feed.getEntries() ) {
-			SyndEntry entry = ((SyndEntry) obj);
-			Log.d( TAG, "Entry Title=" + entry.getTitle() );
-			Log.d( TAG, "Entry Description=" + entry.getDescription() );
-			Log.d( TAG, "Entry Link=" + entry.getLink() );
-			Log.d( TAG, "Entry Publish Date=" + entry.getPublishedDate() );
-
-			for( Object obj1 : entry.getEnclosures() ) {
-				SyndEnclosure enclosure = (SyndEnclosure) obj1;
-				Log.d( TAG, "Entry Enclosure Url=" + enclosure.getUrl() );
-				Log.d( TAG, "Entry Enclosure Length=" + enclosure.getLength() );
-				Log.d( TAG, "Entry Enclosure Type=" + enclosure.getType() );
-			}
-		}
-
-		refreshFeedEntries();
-		
-		Log.d( TAG, "setCurrentFeed : exit" );
-	}
-	
 	@SuppressWarnings( "unchecked" )
 	private void refreshFeedEntries() {
 		Log.d( TAG, "refreshFeedEntries : enter" );
@@ -376,19 +337,49 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 
 				@Override
 				public void onItemClick( AdapterView<?> arg0, View v, int position, long arg3 ) {
-					Log.d( TAG, "onItemClick : enter" );
+					Log.v( TAG, "onItemClick : enter" );
 					
 					setCurrentEntry( (SyndEntry) getApplicationContext().getFeed().getEntries().get( position ) );
 					getApplicationContext().setSelectedPlayType( PlayType.RECORDED );
 					play();
 					
-					Log.d( TAG, "onItemClick : exit" );
+					Log.v( TAG, "onItemClick : exit" );
 				}
 		    	
 		    });
 		}
 
 		Log.d( TAG, "refreshFeedEntries : exit" );
+	}
+	
+	private void refreshLiveStreamInfo() {
+		Log.d( TAG, "refreshLiveStreamInfo : enter" );
+		
+		Feed calendarFeed = getApplicationContext().getCalendarFeed();
+		if( null != calendarFeed && !calendarFeed.getEntries().isEmpty() ) {
+
+			DateTime now = new DateTime();
+			When when = calendarFeed.getEntries().get( 0 ).getWhen();
+			
+			Log.d( TAG, "refreshLiveStreamInfo : after start=" + now.isAfter( when.getStartTime() )  );
+			Log.d( TAG, "refreshLiveStreamInfo : before end=" + now.isBefore( when.getEndTime() )  );
+
+			if( now.isAfter( when.getStartTime() ) && now.isBefore( when.getEndTime() ) ) {
+				Log.v( TAG, "refreshLiveStreamInfo : live streaming now!" );
+				
+				liveButton.setEnabled( true );
+				callButton.setEnabled( true );
+			} else {
+				Log.v( TAG, "refreshLiveStreamInfo : NOT live streaming now!" );
+
+				liveButton.setEnabled( false );
+				callButton.setEnabled( false );
+			}
+			
+			nextShow.setText( fmt.print( when.getStartTime() ) );
+		}
+		
+		Log.d( TAG, "refreshLiveStreamInfo : exit" );
 	}
 	
 	private void setCurrentEntry( SyndEntry entry ) {
@@ -411,38 +402,33 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 		Log.d( TAG, "setCurrentEntry : exit" );
 	}
 	
-	private void refreshFeed() {
-		Log.d( TAG, "refreshFeed : enter" );
-
-		if( null == getApplicationContext().getFeed() ) {
-			new DownloadFeedTask().execute( MainApplication.KATG_RSS_FEED );
-		}
-		
-		refreshFeedEntries();
-		
-		Log.d( TAG, "refreshFeed : exit" );
-	}
-
 	private void play() {
 		Log.d( TAG, "play : enter" );
 		
-		startService( new Intent( this, MediaPlayerService.class ) );
+	    startService( mediaPlayerReceiverIntent );
 		updateNowPlaying();
 		
 		Log.d( TAG, "play : exit" );
 	}
 	
-//	private void download() {
-//		Log.d( TAG, "download : enter" );
-//		
-//		Log.d( TAG, "download : exit" );
-//	}
-	
 	private void updateNowPlaying() {
 		Log.d( TAG, "updateNowPlaying : enter" );
 
-		if( null != getApplicationContext().getSelectedEntry() ) {
-			nowPlaying.setText( getApplicationContext().getSelectedEntry().getTitle() );
+		if( null != getApplicationContext().getSelectedPlayType() ) {
+			switch( getApplicationContext().getSelectedPlayType() ) {
+			case LIVE:
+				nowPlaying.setText( "Streaming Live!" );
+
+				break;
+			case RECORDED:
+				if( null != getApplicationContext().getSelectedEntry() ) {
+					nowPlaying.setText( getApplicationContext().getSelectedEntry().getTitle() );
+				}
+
+				break;
+			default:
+				break;
+			}
 		}
 		
 		Log.d( TAG, "updateNowPlaying : exit" );
@@ -452,8 +438,51 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 		Log.d( TAG, "clearNowPlaying : enter" );
 
 		nowPlaying.setText( "" );
+
+		getApplicationContext().setSelectedEntry( null );
+		getApplicationContext().setSelectedPlayType( null );
 		
 		Log.d( TAG, "clearNowPlaying : exit" );
 	}
 
+    private BroadcastReceiver updateCalendarBroadcastReceiver = new BroadcastReceiver() {
+    	
+        @Override
+        public void onReceive( Context context, Intent intent ) {
+    		Log.d( TAG, "onReceive : enter" );
+
+    		refreshLiveStreamInfo();
+    		
+    		Log.d( TAG, "onReceive : exit" );
+        }
+        
+    };
+    
+    private BroadcastReceiver updateFeedBroadcastReceiver = new BroadcastReceiver() {
+    	
+        @Override
+        public void onReceive( Context context, Intent intent ) {
+    		Log.d( TAG, "onReceive : enter" );
+
+    		refreshFeedEntries();
+    		dismissProgressDialog();
+    		
+    		Log.d( TAG, "onReceive : exit" );
+        }
+        
+    };
+    
+    private BroadcastReceiver mediaPlayerBroadcastReceiver = new BroadcastReceiver() {
+    	
+        @Override
+        public void onReceive( Context context, Intent intent ) {
+    		Log.d( TAG, "onReceive : enter" );
+
+    		clearNowPlaying();
+    		
+    		Log.d( TAG, "onReceive : exit" );
+        }
+        
+    };
+    
 }
