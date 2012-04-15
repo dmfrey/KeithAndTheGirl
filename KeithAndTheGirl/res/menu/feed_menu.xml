@@ -3,16 +3,20 @@
 
     <item
 		android:id="@+id/feed_menu_refresh"
-		android:title="@string/menu_refresh_label" />
+		android:title="@string/menu_refresh_label" 
+		android:icon="@drawable/ic_action_refresh"
+		android:showAsAction="ifRoom|withText" />
 		
     <item
 		android:id="@+id/feed_menu_about"
 		android:title="@string/menu_about_label"
-		android:icon="@android:drawable/ic_menu_info_details" />
+		android:icon="@android:drawable/ic_menu_info_details"
+		android:showAsAction="ifRoom|withText" />
 
     <item
 		android:id="@+id/feed_menu_quit"
 		android:title="@string/menu_quit_label"
-		android:icon="@android:drawable/ic_menu_close_clear_cancel" />
+		android:icon="@android:drawable/ic_menu_close_clear_cancel" 
+		android:showAsAction="ifRoom|withText" />
 
 </menu>

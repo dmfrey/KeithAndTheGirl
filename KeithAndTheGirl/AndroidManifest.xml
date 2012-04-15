@@ -5,7 +5,8 @@
     android:versionCode="1"
     android:versionName="1.0" >
 
-    <uses-sdk android:minSdkVersion="8" />
+    <uses-sdk android:minSdkVersion="4"
+        	  android:targetSdkVersion="14" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -13,12 +14,11 @@
     <application
 		android:name=".MainApplication"
         android:icon="@drawable/ic_katg_launcher"
-        android:label="@string/app_short_name"
-        android:theme="@android:style/Theme.Light" >
+        android:label="@string/app_name" 
+        android:theme="@style/LightThemeSelector">
     
 		<activity 
-			android:name=".activities.MainActivity"
-			android:theme="@android:style/Theme.Light.NoTitleBar">
+			android:name=".activities.MainActivity">
 			
 			<intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,12 +29,10 @@
     
 		<activity 
 			android:name=".activities.FeedActivity" 
-			android:label="@string/app_name" 
-			android:theme="@android:style/Theme.Light.NoTitleBar" />
+			android:label="@string/app_name" />
 
 		<activity 
-			android:name=".activities.AboutActivity"
-			android:theme="@android:style/Theme.Light.NoTitleBar" />
+			android:name=".activities.AboutActivity" />
 		
 		<service android:enabled="true" android:name=".services.MediaPlayerService" />
 		<service android:enabled="true" android:name=".services.UpdateFeedService" />

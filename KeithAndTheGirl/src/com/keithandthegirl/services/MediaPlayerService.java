@@ -23,6 +23,9 @@ package com.keithandthegirl.services;
 
 import java.io.IOException;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.media.MediaPlayer;
@@ -35,6 +38,8 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.Syn
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEntry;
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
+import com.keithandthegirl.R;
+import com.keithandthegirl.activities.FeedActivity;
 
 /**
  * @author Daniel Frey
@@ -53,8 +58,8 @@ public class MediaPlayerService extends Service {
 	
 	private MediaPlayer mp;
 	
-//	private NotificationManager nm;
-//	private static final int NOTIFY_ID = R.layout.main;
+	private NotificationManager nm;
+	private static final int NOTIFY_ID = 1;
 
 	private SyndEntry currentEntry;
 	
@@ -71,7 +76,7 @@ public class MediaPlayerService extends Service {
 		mp = new MediaPlayer();
 		mp.setLooping( false );
 		
-//		nm = (NotificationManager) getSystemService( NOTIFICATION_SERVICE );
+		nm = (NotificationManager) getSystemService( NOTIFICATION_SERVICE );
 		
 		Log.d( TAG, "onCreate : exit" );
 	}
@@ -83,7 +88,7 @@ public class MediaPlayerService extends Service {
 	public void onDestroy() {
 		Log.d( TAG, "onDestroy : enter" );
 
-//		clearNotification();
+		clearNotification();
 		mp.stop();
 		mp.release();
 		
@@ -146,7 +151,7 @@ public class MediaPlayerService extends Service {
 	private void clearNotification() {
 		Log.d( TAG, "clearNotification : enter" );
 
-//		nm.cancel( NOTIFY_ID );
+		nm.cancel( NOTIFY_ID );
 
 		Log.d( TAG, "clearNotification : exit" );
 	}
@@ -162,7 +167,7 @@ public class MediaPlayerService extends Service {
 		mp.setOnCompletionListener( new OnCompletionListener() {
 
 			public void onCompletion( MediaPlayer arg0 ) {
-//				clearNotification();
+				clearNotification();
 				
 				handler.postDelayed( sendUpdatesToUI, 1000 ); // 1 second
 			}
@@ -177,11 +182,11 @@ public class MediaPlayerService extends Service {
 		try {
 			start( MainApplication.KATG_LIVE_STREAM );
 
-//			notify( "KATG Live!", "KATG is streaming live" );
+			notify( "KATG Live!", "KATG is streaming live" );
 		} catch( IOException e ) {
 			Log.w( TAG, e.getMessage() );
 			
-//			clearNotification();
+			clearNotification();
 		}
 		
 		Log.d( TAG, "playLive : exit" );
@@ -198,7 +203,7 @@ public class MediaPlayerService extends Service {
 	        value = value.replace( "</p>", "" );
 	        value = value.replace( "\"", "" );
 
-//			notify( currentEntry.getTitle(), value );
+			notify( currentEntry.getTitle(), value );
 		} catch( IOException e ) {
 			Log.w( TAG, e.getMessage() );
 
@@ -208,15 +213,17 @@ public class MediaPlayerService extends Service {
 		Log.d( TAG, "playRecorded : exit" );
 	}
 
-//	private void notify( String title, String description ) {
-//		Notification notification = new Notification( R.drawable.ic_katg_notification, title, System.currentTimeMillis() );
-//
-//		Intent notificationIntent = new Intent( this, FeedActivity.class );
-//		PendingIntent contentIntent = PendingIntent.getActivity( this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT );
-//
-//		notification.setLatestEventInfo( this, title, description, contentIntent );
-//		
-//		nm.notify( NOTIFY_ID, notification );
-//	}
+	private void notify( String title, String description ) {
+		Notification notification = new Notification( R.drawable.ic_katg_notification, title, System.currentTimeMillis() );
+
+		Intent notificationIntent = new Intent( this, FeedActivity.class );
+		PendingIntent contentIntent = PendingIntent.getActivity( this, 0, notificationIntent, 0 );
+
+		notification.setLatestEventInfo( this, title, description, contentIntent );
+		
+		notification.flags = Notification.FLAG_ONGOING_EVENT;
+		
+		nm.notify( NOTIFY_ID, notification );
+	}
 
 }

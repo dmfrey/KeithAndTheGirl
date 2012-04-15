@@ -29,5 +29,8 @@
     <string name="now_playing_label">Now Playing...</string>
     <string name="www_label">WWW</string>
     <string name="empty"></string>
+
+    <string name="menu_refresh">Refresh</string>
+    <string name="menu_share">Share</string>
     
 </resources>

@@ -2,6 +2,11 @@
 
 <resources>
 
+    <!-- Theme Styles -->
+
+	<style name="LightThemeSelector" parent="android:Theme.Light.NoTitleBar">
+    </style>
+
 	<!-- Layout Styles -->
 	
 	<style name="MainTabLayout">

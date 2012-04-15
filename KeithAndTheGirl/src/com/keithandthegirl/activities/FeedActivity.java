@@ -151,16 +151,16 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 		registerReceiver( mediaPlayerBroadcastReceiver, new IntentFilter( MediaPlayerService.BROADCAST_ACTION ) );
 
 		registerReceiver( updateFeedBroadcastReceiver, new IntentFilter( UpdateFeedService.BROADCAST_ACTION ) );
-		if( null == getApplicationContext().getFeed() ) {
+		if( null == ( (MainApplication) getApplicationContext() ).getFeed() ) {
 		    startService( feedReceiverIntent );
 		} else {
 			refreshLiveStreamInfo();
 		}
 
 		registerReceiver( updateCalendarBroadcastReceiver, new IntentFilter( UpdateCalendarService.BROADCAST_ACTION ) );
-		if( null == getApplicationContext().getCalendarFeed() ) {
+		if( null == ( (MainApplication) getApplicationContext() ).getCalendarFeed() ) {
 			startService( calendarReceiverIntent );
-			showProgressDialog();
+			//showProgressDialog();
 		} else {
 			refreshFeedEntries();
 		}
@@ -181,7 +181,7 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	    inflater.inflate( R.menu.feed_menu, menu );
 
 	    Log.d( TAG, "onCreateOptionsMenu : exit" );
-	    return true;
+	    return super.onCreateOptionsMenu( menu );
 	}
 	
 	/* (non-Javadoc)
@@ -191,35 +191,41 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	public boolean onOptionsItemSelected( MenuItem item ) {		
 	    Log.d( TAG, "onOptionsItemSelected : enter" );
 
+	    Intent intent = new Intent();
+	    
 	    // Handle item selection
 	    switch( item.getItemId() ) {
+	    case android.R.id.home:
+            // app icon in action bar clicked; go home
+            intent = new Intent( this, FeedActivity.class );
+            intent.addFlags( Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK );
+            startActivity( intent );
+	    	break;
 	    case R.id.feed_menu_refresh:
 	    	
 		    startService( feedReceiverIntent );
 
 		    startService( calendarReceiverIntent );
-			showProgressDialog();
+			//showProgressDialog();
 
 	    	Log.d( TAG, "onOptionsItemSelected : exit, refresh option selected" );
-	    	return true;
+	    	break;
 	    case R.id.feed_menu_about:
-			Intent intent = new Intent();
 			intent.setClass( this, AboutActivity.class );
 			startActivity( intent );
 
 	    	Log.d( TAG, "onOptionsItemSelected : exit, about option selected" );
-	    	return true;
+	    	break;
 	    case R.id.feed_menu_quit:
 		    stopService( new Intent( this, MediaPlayerService.class ) );
 
 			finish();
 	    	
 	    	Log.d( TAG, "onOptionsItemSelected : exit, quit option selected" );
-	    	return true;
-	    default:
-	    	Log.d( TAG, "onOptionsItemSelected : exit, default option selected" );
-	        return super.onOptionsItemSelected( item );
+	    	break;
 	    }
+	    
+	    return super.onOptionsItemSelected( item );
 	}
 
 	/* (non-Javadoc)
@@ -246,11 +252,11 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	    AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
         Log.d( TAG, "onContextItemSelected : info.id=" + info.id + ", info.position=" + info.position );
 
-        setCurrentEntry( (SyndEntry) getApplicationContext().getFeed().getEntries().get( info.position ) );
+        setCurrentEntry( (SyndEntry) ( (MainApplication) getApplicationContext() ).getFeed().getEntries().get( info.position ) );
         
         switch( item.getItemId() ) {
 	        case R.id.feed_entry_context_menu_play:
-	            getApplicationContext().setSelectedPlayType( PlayType.RECORDED );
+	        	( (MainApplication) getApplicationContext() ).setSelectedPlayType( PlayType.RECORDED );
 	        	play();
 	        	
 	            Log.d( TAG, "onContextItemSelected : exit, play selected" );
@@ -279,7 +285,7 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 			case R.id.live_button :
 				Log.v( TAG, "onClick : live button pressed" );
 				
-				getApplicationContext().setSelectedPlayType( PlayType.LIVE );
+				( (MainApplication) getApplicationContext() ).setSelectedPlayType( PlayType.LIVE );
 				play();
 				
 				break;
@@ -324,7 +330,7 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	private void refreshFeedEntries() {
 		Log.d( TAG, "refreshFeedEntries : enter" );
 		
-		SyndFeed feed = getApplicationContext().getFeed();
+		SyndFeed feed = ( (MainApplication) getApplicationContext() ).getFeed();
 		if( null != feed && !feed.getEntries().isEmpty() ) {
 			ListAdapter adapter = new FeedEntryListAdapter( feed.getEntries(), this );
 	
@@ -339,8 +345,8 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 				public void onItemClick( AdapterView<?> arg0, View v, int position, long arg3 ) {
 					Log.v( TAG, "onItemClick : enter" );
 					
-					setCurrentEntry( (SyndEntry) getApplicationContext().getFeed().getEntries().get( position ) );
-					getApplicationContext().setSelectedPlayType( PlayType.RECORDED );
+					setCurrentEntry( (SyndEntry) ( (MainApplication) getApplicationContext() ).getFeed().getEntries().get( position ) );
+					( (MainApplication) getApplicationContext() ).setSelectedPlayType( PlayType.RECORDED );
 					play();
 					
 					Log.v( TAG, "onItemClick : exit" );
@@ -355,7 +361,7 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	private void refreshLiveStreamInfo() {
 		Log.d( TAG, "refreshLiveStreamInfo : enter" );
 		
-		Feed calendarFeed = getApplicationContext().getCalendarFeed();
+		Feed calendarFeed = ( (MainApplication) getApplicationContext() ).getCalendarFeed();
 		if( null != calendarFeed && !calendarFeed.getEntries().isEmpty() ) {
 
 			DateTime now = new DateTime();
@@ -385,7 +391,7 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	private void setCurrentEntry( SyndEntry entry ) {
 		Log.d( TAG, "setCurrentEntry : enter" );
 
-		getApplicationContext().setSelectedEntry( entry );
+		( (MainApplication) getApplicationContext() ).setSelectedEntry( entry );
 
 		Log.d( TAG, "Entry Title=" + entry.getTitle() );
 		Log.d( TAG, "Entry Description=" + entry.getDescription() );
@@ -414,15 +420,15 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 	private void updateNowPlaying() {
 		Log.d( TAG, "updateNowPlaying : enter" );
 
-		if( null != getApplicationContext().getSelectedPlayType() ) {
-			switch( getApplicationContext().getSelectedPlayType() ) {
+		if( null != ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
+			switch( ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
 			case LIVE:
 				nowPlaying.setText( "Streaming Live!" );
 
 				break;
 			case RECORDED:
-				if( null != getApplicationContext().getSelectedEntry() ) {
-					nowPlaying.setText( getApplicationContext().getSelectedEntry().getTitle() );
+				if( null != ( (MainApplication) getApplicationContext() ).getSelectedEntry() ) {
+					nowPlaying.setText( ( (MainApplication) getApplicationContext() ).getSelectedEntry().getTitle() );
 				}
 
 				break;
@@ -439,8 +445,8 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 
 		nowPlaying.setText( "" );
 
-		getApplicationContext().setSelectedEntry( null );
-		getApplicationContext().setSelectedPlayType( null );
+		( (MainApplication) getApplicationContext() ).setSelectedEntry( null );
+		( (MainApplication) getApplicationContext() ).setSelectedPlayType( null );
 		
 		Log.d( TAG, "clearNowPlaying : exit" );
 	}
@@ -465,7 +471,7 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
     		Log.d( TAG, "onReceive : enter" );
 
     		refreshFeedEntries();
-    		dismissProgressDialog();
+    		//dismissProgressDialog();
     		
     		Log.d( TAG, "onReceive : exit" );
         }
