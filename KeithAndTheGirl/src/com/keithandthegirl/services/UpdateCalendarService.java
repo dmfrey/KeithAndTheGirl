@@ -25,6 +25,7 @@ import org.simpleframework.xml.Serializer;
 import org.simpleframework.xml.convert.AnnotationStrategy;
 import org.simpleframework.xml.core.Persister;
 import org.simpleframework.xml.strategy.Strategy;
+import org.springframework.social.support.ClientHttpRequestFactorySelector;
 import org.springframework.web.client.RestTemplate;
 
 import android.app.Service;
@@ -117,7 +118,7 @@ public class UpdateCalendarService extends Service {
 			Log.v( TAG, "doInBackground : enter" );
 
 			try {
-				RestTemplate template = new RestTemplate();
+				RestTemplate template = new RestTemplate( true, ClientHttpRequestFactorySelector.getRequestFactory() );
 				String xml =  template.getForObject( params[ 0 ], String.class );
 				
 				Strategy strategy = new AnnotationStrategy();
