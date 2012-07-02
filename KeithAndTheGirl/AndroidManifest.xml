@@ -18,7 +18,7 @@
         android:theme="@style/LightThemeSelector">
     
 		<activity 
-			android:name=".activities.MainActivity">
+			android:name=".ui.activity.HomeActivity">
 			
 			<intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,11 +28,13 @@
 		</activity>
     
 		<activity 
-			android:name=".activities.FeedActivity" 
-			android:label="@string/app_name" />
+			android:name=".ui.activity.FeedActivity" />
 
-		<activity 
+		<!-- activity 
 			android:name=".activities.AboutActivity" />
+		
+		<activity 
+			android:name=".activities.MainActivity" /-->
 		
 		<service android:enabled="true" android:name=".services.MediaPlayerService" />
 		<service android:enabled="true" android:name=".services.UpdateFeedService" />

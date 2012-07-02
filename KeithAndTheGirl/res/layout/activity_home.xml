@@ -19,29 +19,18 @@
  *
 -->
 
-<merge xmlns:android="http://schemas.android.com/apk/res/android">
-	
-	<ScrollView
-		style="@style/ScrollView">
-
-			<LinearLayout
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-			    android:orientation="vertical"
-	    		android:padding="10dip">
-	
-				<TextView 
-					style="@style/HeadingText" 
-					android:id="@+id/about_header_text_view"
-					android:text="@string/about_header" />
-
-				<TextView 
-			    	style="@style/Text"
-			    	android:id="@+id/about_description_text_view"
-			    	android:text="@string/about_description" />
-				
-			</LinearLayout>
-			    		
-	</ScrollView>
-	
-</merge>
+<android.support.v4.view.ViewPager xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" 
+    android:layout_height="match_parent" 
+    android:id="@+id/home_pager">
+    	
+	<android.support.v4.view.PagerTitleStrip android:id="@+id/pager_title_strip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="#5c8800"
+        android:textColor="#fff"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp" />
+	    
+</android.support.v4.view.ViewPager>

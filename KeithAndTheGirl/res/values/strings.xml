@@ -5,6 +5,9 @@
     <string name="app_name">KeithAndTheGirl</string>
     <string name="app_short_name">KATG</string>
     
+    <string name="tab_listen">Listen</string>
+    <string name="tab_twitter">Twitter</string>
+    
     <string name="katg_header_logo_description">KATG Logo</string>
     <string name="katg_header_text_description">Keith and the Girl Free Comedy Show</string>
     
@@ -32,5 +35,10 @@
 
     <string name="menu_refresh">Refresh</string>
     <string name="menu_share">Share</string>
+    
+    <string name="btn_feed">Episodes</string>
+    <string name="btn_live">Listen Live</string>
+    <string name="btn_keith">Keith</string>
+    <string name="btn_chemda">Chemda</string>
     
 </resources>
