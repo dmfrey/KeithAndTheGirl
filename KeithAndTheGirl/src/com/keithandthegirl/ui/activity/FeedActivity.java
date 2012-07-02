@@ -21,6 +21,7 @@ package com.keithandthegirl.ui.activity;
 
 import android.annotation.TargetApi;
 import android.app.ActionBar;
+import android.app.ListActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -31,7 +32,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
-import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -47,8 +47,6 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.Syn
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
-import com.keithandthegirl.activities.AboutActivity;
-import com.keithandthegirl.activities.AbstractKatgListActivity;
 import com.keithandthegirl.activities.FeedEntryListAdapter;
 import com.keithandthegirl.services.MediaPlayerService;
 import com.keithandthegirl.services.UpdateFeedService;
@@ -57,7 +55,7 @@ import com.keithandthegirl.services.UpdateFeedService;
  * @author Daniel Frey
  *
  */
-public class FeedActivity extends AbstractKatgListActivity implements OnClickListener {
+public class FeedActivity extends ListActivity implements OnClickListener {
 
 	private static final String TAG = FeedActivity.class.getSimpleName();
 
@@ -129,25 +127,13 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 		registerReceiver( updateFeedBroadcastReceiver, new IntentFilter( UpdateFeedService.BROADCAST_ACTION ) );
 		if( null == ( (MainApplication) getApplicationContext() ).getFeed() ) {
 		    startService( feedReceiverIntent );
+		} else {
+			refreshFeedEntries();
 		}
 
 		Log.d( TAG, "onResume : exit" );
 	}
 
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
-	 */
-	@Override
-	public boolean onCreateOptionsMenu( Menu menu ) {
-	    Log.d( TAG, "onCreateOptionsMenu : enter" );
-
-	    MenuInflater inflater = getMenuInflater();
-	    inflater.inflate( R.menu.feed_menu, menu );
-
-	    Log.d( TAG, "onCreateOptionsMenu : exit" );
-	    return super.onCreateOptionsMenu( menu );
-	}
-	
 	/* (non-Javadoc)
 	 * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
 	 */
@@ -170,19 +156,6 @@ public class FeedActivity extends AbstractKatgListActivity implements OnClickLis
 		    startService( feedReceiverIntent );
 
 	    	Log.d( TAG, "onOptionsItemSelected : exit, refresh option selected" );
-	    	break;
-	    case R.id.feed_menu_about:
-			intent.setClass( this, AboutActivity.class );
-			startActivity( intent );
-
-	    	Log.d( TAG, "onOptionsItemSelected : exit, about option selected" );
-	    	break;
-	    case R.id.feed_menu_quit:
-		    stopService( new Intent( this, MediaPlayerService.class ) );
-
-			finish();
-	    	
-	    	Log.d( TAG, "onOptionsItemSelected : exit, quit option selected" );
 	    	break;
 	    }
 	    

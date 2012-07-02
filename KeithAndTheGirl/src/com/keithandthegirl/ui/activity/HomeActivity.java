@@ -22,16 +22,8 @@ package com.keithandthegirl.ui.activity;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-
 import android.annotation.TargetApi;
 import android.app.ActionBar;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
@@ -46,11 +38,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.R;
-import com.keithandthegirl.api.google.Feed;
-import com.keithandthegirl.api.google.When;
-import com.keithandthegirl.services.UpdateCalendarService;
 
 /**
  * @author Daniel Frey
@@ -59,10 +47,8 @@ import com.keithandthegirl.services.UpdateCalendarService;
 public class HomeActivity extends FragmentActivity {
 
 	private static final String TAG = HomeActivity.class.getSimpleName();
-	private static final DateTimeFormatter fmt = DateTimeFormat.forPattern( "MMM dd '@' hh:mm a" );
 	private static final int ABOUT_ID = Menu.FIRST + 1;
 
-	private Intent calendarReceiverIntent;
 	private Resources resources;
 	
 	/* (non-Javadoc)
@@ -80,60 +66,22 @@ public class HomeActivity extends FragmentActivity {
 		
 		setupActionBar();
 		
-	    calendarReceiverIntent = new Intent( this, UpdateCalendarService.class );
-
 		List<Fragment> fragments = new ArrayList<Fragment>();
+		fragments.add( Fragment.instantiate( this, GuestsDashboardFragment.class.getName() ) );
 		fragments.add( Fragment.instantiate( this, ListenDashboardFragment.class.getName() ) );
-		fragments.add( Fragment.instantiate( this, TwitterDashboardFragment.class.getName() ) );
+		fragments.add( Fragment.instantiate( this, SocialDashboardFragment.class.getName() ) );
+		fragments.add( Fragment.instantiate( this, WebDashboardFragment.class.getName() ) );
 
 		KatgPagerAdapter mAdapter = new KatgPagerAdapter( getSupportFragmentManager(), fragments );
 		ViewPager mPager = (ViewPager) findViewById( R.id.home_pager );
 		mPager.setAdapter( mAdapter );
-		mPager.setCurrentItem( 0 );
+		mPager.setCurrentItem( 1 );
 
 		Log.d( TAG, "onCreate : exit" );
 	}
 
 	/* (non-Javadoc)
-	 * @see android.support.v4.app.FragmentActivity#onPause()
-	 */
-	@Override
-	protected void onPause() {
-		Log.d( TAG, "onPause : enter" );
-		super.onPause();
-		
-		unregisterReceiver( updateCalendarBroadcastReceiver );
-		stopService( calendarReceiverIntent ); 		
-
-		Log.d( TAG, "onPause : exit" );
-	}
-
-	/* (non-Javadoc)
-	 * @see android.support.v4.app.FragmentActivity#onResume()
-	 */
-	@Override
-	protected void onResume() {
-		Log.d( TAG, "onResume : enter" );
-		super.onResume();
-
-		registerReceiver( updateCalendarBroadcastReceiver, new IntentFilter( UpdateCalendarService.BROADCAST_ACTION ) );
-		if( null == ( (MainApplication) getApplicationContext() ).getCalendarFeed() ) {
-			Log.d( TAG, "onResume : starting calendarReceiverIntent" );
-
-			startService( calendarReceiverIntent );
-//			//showProgressDialog();
-		} else {
-//			refreshFeedEntries();
-		}
-
-		Log.d( TAG, "onResume : exit" );
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.mythtv.client.ui.BaseActivity#onCreateOptionsMenu(android.view.Menu)
+	 * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
 	 */
 	@TargetApi( 11 )
 	@Override
@@ -149,28 +97,14 @@ public class HomeActivity extends FragmentActivity {
 		return super.onCreateOptionsMenu( menu );
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.mythtv.client.ui.BaseActivity#onOptionsItemSelected(android.view.
-	 * MenuItem)
+	/* (non-Javadoc)
+	 * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
 	 */
 	@Override
 	public boolean onOptionsItemSelected( MenuItem item ) {
 		Log.d( TAG, "onOptionsItemSelected : enter" );
 
 		switch( item.getItemId() ) {
-//		case R.id.menu_frontends:
-//			Log.d( TAG, "onOptionsItemSelected : setup selected" );
-//
-//			startActivity( new Intent( this, MythmoteActivity.class ) );
-//			return true;
-//		case R.id.menu_setup:
-//			Log.d( TAG, "onOptionsItemSelected : setup selected" );
-//
-//			startActivity( new Intent( this, SetupActivity.class ) );
-//			return true;
 		case ABOUT_ID:
 			Log.d( TAG, "onOptionsItemSelected : about selected" );
 
@@ -191,51 +125,6 @@ public class HomeActivity extends FragmentActivity {
 		return super.onOptionsItemSelected( item );
 	}
 
-
-	// internal helpers
-	
-	private void refreshLiveStreamInfo() {
-		Log.d( TAG, "refreshLiveStreamInfo : enter" );
-		
-		Feed calendarFeed = ( (MainApplication) getApplicationContext() ).getCalendarFeed();
-		if( null != calendarFeed && !calendarFeed.getEntries().isEmpty() ) {
-
-			DateTime now = new DateTime();
-			When when = calendarFeed.getEntries().get( 0 ).getWhen();
-			
-			Log.d( TAG, "refreshLiveStreamInfo : after start=" + now.isAfter( when.getStartTime() )  );
-			Log.d( TAG, "refreshLiveStreamInfo : before end=" + now.isBefore( when.getEndTime() )  );
-
-			if( now.isAfter( when.getStartTime() ) && now.isBefore( when.getEndTime() ) ) {
-//				Log.v( TAG, "refreshLiveStreamInfo : live streaming now!" );
-//				
-//				liveButton.setEnabled( true );
-//				callButton.setEnabled( true );
-			} else {
-//				Log.v( TAG, "refreshLiveStreamInfo : NOT live streaming now!" );
-//
-//				liveButton.setEnabled( false );
-//				callButton.setEnabled( false );
-			}
-//			
-//			nextShow.setText( fmt.print( when.getStartTime() ) );
-		}
-		
-		Log.d( TAG, "refreshLiveStreamInfo : exit" );
-	}
-
-	private BroadcastReceiver updateCalendarBroadcastReceiver = new BroadcastReceiver() {
-	
-		@Override
-		public void onReceive( Context context, Intent intent ) {
-			Log.d( TAG, "onReceive : enter" );
-
-			refreshLiveStreamInfo();
-		
-			Log.d( TAG, "onReceive : exit" );
-		}
-    
-	};
 
 	@TargetApi( 11 )
 	private void setupActionBar() {
@@ -277,9 +166,13 @@ public class HomeActivity extends FragmentActivity {
 
 			switch( position ) {
 			case 0:
-				return resources.getString( R.string.tab_listen );
+				return resources.getString( R.string.tab_guests );
 			case 1:
-				return resources.getString( R.string.tab_twitter );
+				return resources.getString( R.string.tab_listen );
+			case 2:
+				return resources.getString( R.string.tab_social );
+			case 3:
+				return resources.getString( R.string.tab_web );
 			}
 
 			return super.getPageTitle( position );

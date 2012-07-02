@@ -26,11 +26,19 @@
 
     <Button android:id="@+id/twitter_btn_keith"
         style="@style/DashboardButton"
-        android:text="@string/btn_keith"
+        android:text="@string/btn_twitter_keith"
         android:drawableTop="@drawable/twitter_btn_keith" />
     <Button android:id="@+id/twitter_btn_chemda"
         style="@style/DashboardButton"
-        android:text="@string/btn_chemda"
+        android:text="@string/btn_twitter_chemda"
         android:drawableTop="@drawable/twitter_btn_chemda" />
+    <Button android:id="@+id/facebook_btn_keith"
+        style="@style/DashboardButton"
+        android:text="@string/btn_facebook_keith"
+        android:drawableTop="@drawable/facebook_btn_keith" />
+    <Button android:id="@+id/facebook_btn_chemda"
+        style="@style/DashboardButton"
+        android:text="@string/btn_facebook_chemda"
+        android:drawableTop="@drawable/facebook_btn_chemda" />
     
 </com.keithandthegirl.ui.widget.DashboardLayout>
