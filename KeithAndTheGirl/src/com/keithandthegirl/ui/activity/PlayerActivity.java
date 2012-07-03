@@ -3,8 +3,12 @@
  */
 package com.keithandthegirl.ui.activity;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+
+import org.springframework.social.support.ClientHttpRequestFactorySelector;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import android.annotation.TargetApi;
 import android.app.ActionBar;
@@ -13,6 +17,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
@@ -23,6 +28,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.R;
@@ -139,15 +145,15 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				editLocation.setEnabled( true );
 				editComment.setEnabled( true );
 
-				SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
-				String name = sharedPreferences.getString( NAME_KEY, "" );
-				String location = sharedPreferences.getString( LOCATION_KEY, "" );
-				
-				editName.setText( name );
-				editLocation.setText( location );
-				
 				break;
 		}
+		
+		SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
+		String name = sharedPreferences.getString( NAME_KEY, "" );
+		String location = sharedPreferences.getString( LOCATION_KEY, "" );
+		
+		editName.setText( name );
+		editLocation.setText( location );
 		
 		Log.d( TAG, "onResume : exit" );
 	}
@@ -221,17 +227,7 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				savePreferences( NAME_KEY, name );
 				savePreferences( LOCATION_KEY, location );
 				
-				try {
-					String encodedName = URLEncoder.encode( name, FEEDBACK_URL_ENCODER );
-					String encodedLocation = URLEncoder.encode( location, FEEDBACK_URL_ENCODER );
-					String encodedComment = URLEncoder.encode( comment, FEEDBACK_URL_ENCODER );
-				
-					Log.i( TAG, "onClick : url=" + FEEDBACK_URL + "?Name=" + encodedName + "&Location=" + encodedLocation + "&Comment=" + encodedComment + "&ButtonSubmit=Send+Comment&HiddenVoxbackId=3&HiddenMixerCode=IEOSE" );
-				
-					// Submit feedback
-				} catch( UnsupportedEncodingException e ) {
-					Log.e( TAG, "onClick : error", e );
-				}
+				new PostCommentTask().execute( name, location, comment );
 				
 				editComment.setText( "" );
 				
@@ -290,6 +286,93 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
     	SharedPreferences.Editor editor = sharedPreferences.edit();
     	editor.putString( key, value );
     	editor.commit();
+    }
+    
+    private class PostCommentTask extends AsyncTask<String, Void, String> {
+    	
+    	private Exception exception;
+    	
+    	@Override
+    	protected String doInBackground( String... params ) {
+    		
+    		try {
+    			RestTemplate template = new RestTemplate( true, ClientHttpRequestFactorySelector.getRequestFactory() );
+
+    			String name = params[ 0 ];
+    			if( null != name && !"".equals( name ) ) {
+    				name = name.trim();
+    				
+    				if( name.length() > 50 ) {
+    					name = name.substring( 0, 50 );
+    				}
+    			}
+    			
+    			String location = params[ 1 ];
+    			if( null != location && !"".equals( location ) ) {
+    				location = location.trim();
+    				
+    				if( location.length() > 50 ) {
+    					location = location.substring( 0, 50 );
+    				}
+    			}
+    			
+    			String comment = params[ 2 ];
+    			if( null != comment && !"".equals( comment ) ) {
+    				comment = comment.trim();
+    				
+    				if( comment.length() > 50 ) {
+    					comment = comment.substring( 0, 50 );
+    				}
+    			}
+    			
+    			
+    			String encodedName = ( null != name && !"".equals( name ) ) ? URLEncoder.encode( name, FEEDBACK_URL_ENCODER ) : "";
+    			String encodedLocation = ( null != location && !"".equals( location ) ) ? URLEncoder.encode( location, FEEDBACK_URL_ENCODER ) : "";
+    			String encodedComment = ( null != comment && !"".equals( comment ) ) ? URLEncoder.encode( comment, FEEDBACK_URL_ENCODER ) : "";
+
+    			MultiValueMap<String, String> map = new LinkedMultiValueMap<String, String>();
+    			map.add( "Name", encodedName );
+    			map.add( "Location", encodedLocation );
+    			map.add( "Comment", encodedComment );
+    			map.add( "ButtonSubmit", "Send+Comment" );
+    			map.add( "HiddenVoxbackId", "3" );
+    			map.add( "HiddenMixerCode", "IEOSE" );
+
+    			return template.postForObject( FEEDBACK_URL, map, String.class );
+    		} catch( Exception e ) {
+    			exception = e;
+    		}
+    		
+    		return null;
+    	}
+
+		/* (non-Javadoc)
+		 * @see android.os.AsyncTask#onPostExecute(java.lang.Object)
+		 */
+		@Override
+		protected void onPostExecute( String result ) {
+			
+			if( null == exception ) {
+				
+				if( null != result ) {
+					Log.i( TAG, "result=" + result );
+	
+					toastComment( "Comment sent successfully!" );
+				} else {
+					toastComment( "Comment failed!" );
+				}
+				
+			} else {
+				toastComment( "Comment failed!" );
+			}
+			
+		}
+        
+    }
+
+    private void toastComment( String message ) {
+    	Toast toast = Toast.makeText( this, message, Toast.LENGTH_SHORT );
+    	toast.show();
     }
     
 }
