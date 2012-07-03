@@ -7,7 +7,7 @@
     
     <string name="tab_guests">Guests</string>
     <string name="tab_listen">Listen</string>
-    <string name="tab_social">Twitter</string>
+    <string name="tab_social">Social</string>
     <string name="tab_web">Web</string>
     
     <string name="katg_header_logo_description">KATG Logo</string>
@@ -26,7 +26,7 @@
     
 	<string name="next_show_label">Next Show:</string>
 	
-    <string name="live_label">Listen Live!</string>
+	<string name="live_label">Listen Live!</string>
     <string name="call_label">Call</string>
     <string name="play_label">Play</string>
     <string name="pause_label">Pause</string>
@@ -46,5 +46,12 @@
     <string name="btn_facebook_chemda">Facebook Chemda</string>
     <string name="btn_website">WWW</string>
     <string name="btn_forums">Forums</string>
+    
+    <string name="player_controls_label">Player Controls</string>
+    <string name="player_feedback_label">Feedback</string>
+    <string name="player_feedback_name_label">Name</string>
+    <string name="player_feedback_location_label">Location</string>
+    <string name="player_feedback_comment_label">Comment</string>
+    <string name="player_feedback_submit_label">Submit</string>
     
 </resources>

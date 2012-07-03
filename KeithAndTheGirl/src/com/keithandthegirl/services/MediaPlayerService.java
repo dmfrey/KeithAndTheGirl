@@ -37,7 +37,7 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.Syn
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
-import com.keithandthegirl.activities.FeedActivity;
+import com.keithandthegirl.ui.activity.PlayerActivity;
 
 /**
  * @author Daniel Frey
@@ -214,7 +214,7 @@ public class MediaPlayerService extends Service {
 	private void notify( String title, String description ) {
 		Notification notification = new Notification( R.drawable.ic_katg_notification, title, System.currentTimeMillis() );
 
-		Intent notificationIntent = new Intent( this, FeedActivity.class );
+		Intent notificationIntent = new Intent( this, PlayerActivity.class );
 		PendingIntent contentIntent = PendingIntent.getActivity( this, 0, notificationIntent, 0 );
 
 		notification.setLatestEventInfo( this, title, description, contentIntent );

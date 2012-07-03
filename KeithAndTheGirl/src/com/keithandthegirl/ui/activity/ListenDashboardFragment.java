@@ -20,6 +20,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 
 import com.keithandthegirl.MainApplication;
+import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
 import com.keithandthegirl.api.google.Feed;
 import com.keithandthegirl.api.google.When;
@@ -69,6 +70,9 @@ public class ListenDashboardFragment extends Fragment {
 			public void onClick( View view ) {
 				Log.v( TAG, "live.onClick : enter" );
 
+				( (MainApplication) getActivity().getApplicationContext() ).setSelectedPlayType( PlayType.LIVE );
+				startActivity( new Intent( getActivity(), PlayerActivity.class ) );
+				
 				Log.v( TAG, "live.onClick : exit" );
 			}
 		} );
@@ -129,19 +133,20 @@ public class ListenDashboardFragment extends Fragment {
 				Log.v( TAG, "refreshLiveStreamInfo : live streaming now!" );
 				
 				liveButton.setEnabled( true );
+				liveButton.setText( getResources().getString( R.string.btn_live ) + " NOW!!" );
 			} else {
 				Log.v( TAG, "refreshLiveStreamInfo : NOT live streaming now!" );
 
 				liveButton.setEnabled( false );
+				liveButton.setText( getResources().getString( R.string.btn_live ) + " " + fmt.print( when.getStartTime() ) );
 			}
 			
-			liveButton.setText( getResources().getString( R.string.btn_live ) + " " + fmt.print( when.getStartTime() ) );
 		}
 		
 		Log.d( TAG, "refreshLiveStreamInfo : exit" );
 	}
 
-	private BroadcastReceiver updateCalendarBroadcastReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver updateCalendarBroadcastReceiver = new BroadcastReceiver() {
 	
 		@Override
 		public void onReceive( Context context, Intent intent ) {

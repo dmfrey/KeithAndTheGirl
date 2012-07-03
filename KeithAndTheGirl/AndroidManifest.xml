@@ -30,10 +30,10 @@
 		<activity 
 			android:name=".ui.activity.FeedActivity" />
 
-		<!-- activity 
-			android:name=".activities.AboutActivity" />
-		
 		<activity 
+			android:name=".ui.activity.PlayerActivity" />
+		
+		<!-- activity 
 			android:name=".activities.MainActivity" /-->
 		
 		<service android:enabled="true" android:name=".services.MediaPlayerService" />

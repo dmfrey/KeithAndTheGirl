@@ -26,7 +26,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -35,7 +34,6 @@ import android.view.ContextMenu.ContextMenuInfo;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ListAdapter;
@@ -48,18 +46,17 @@ import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
 import com.keithandthegirl.activities.FeedEntryListAdapter;
-import com.keithandthegirl.services.MediaPlayerService;
 import com.keithandthegirl.services.UpdateFeedService;
 
 /**
  * @author Daniel Frey
  *
  */
-public class FeedActivity extends ListActivity implements OnClickListener {
+public class FeedActivity extends ListActivity {
 
 	private static final String TAG = FeedActivity.class.getSimpleName();
 
-	private Intent mediaPlayerReceiverIntent, feedReceiverIntent;
+	private Intent feedReceiverIntent;
 	
 	//***************************************
     // Activity methods
@@ -78,7 +75,6 @@ public class FeedActivity extends ListActivity implements OnClickListener {
 
 	    setupActionBar();
 	    
-	    mediaPlayerReceiverIntent = new Intent( this, MediaPlayerService.class );
 	    feedReceiverIntent = new Intent( this, UpdateFeedService.class );
 	    
 	    Log.d( TAG, "onCreate : exit" );
@@ -105,8 +101,6 @@ public class FeedActivity extends ListActivity implements OnClickListener {
 
 		super.onPause();
 		
-		unregisterReceiver( mediaPlayerBroadcastReceiver );
-
 		unregisterReceiver( updateFeedBroadcastReceiver );
 		stopService( feedReceiverIntent ); 		
 
@@ -121,8 +115,6 @@ public class FeedActivity extends ListActivity implements OnClickListener {
 	    Log.d( TAG, "onResume : enter" );
 
 	    super.onResume();
-
-		registerReceiver( mediaPlayerBroadcastReceiver, new IntentFilter( MediaPlayerService.BROADCAST_ACTION ) );
 
 		registerReceiver( updateFeedBroadcastReceiver, new IntentFilter( UpdateFeedService.BROADCAST_ACTION ) );
 		if( null == ( (MainApplication) getApplicationContext() ).getFeed() ) {
@@ -206,55 +198,6 @@ public class FeedActivity extends ListActivity implements OnClickListener {
 	    }
     }
 
-	/* (non-Javadoc)
-	 * @see android.view.View.OnClickListener#onClick(android.view.View)
-	 */
-	@Override
-	public void onClick( View v ) {
-		Log.d( TAG, "onClick : enter" );
-		
-		Uri uri;
-		
-		switch( v.getId() ) {
-			case R.id.live_button :
-				Log.v( TAG, "onClick : live button pressed" );
-				
-				( (MainApplication) getApplicationContext() ).setSelectedPlayType( PlayType.LIVE );
-				play();
-				
-				break;
-			case R.id.stop_button :
-				Log.v( TAG, "onClick : stop button pressed" );
-				
-				stopService( new Intent( this, MediaPlayerService.class ) );
-				clearNowPlaying();
-				
-				break;
-		    case R.id.www_button:
-		    	Log.d( TAG, "onClick : www button pressed" );
-
-				uri = Uri.parse( MainApplication.KATG_WEB_SITE );
-				Intent intent = new Intent( Intent.ACTION_VIEW, uri );
-				startActivity( intent );
-				
-		    	break;
-		    case R.id.call_button :
-		    	Log.d( TAG, "onClick : call button pressed" );
-
-		    	uri = Uri.parse( "tel:" + MainApplication.KATG_PHONE_NUMBER );
-				intent = new Intent( Intent.ACTION_DIAL, uri );
-				startActivity( intent );
-				
-		    	break;
-			default:
-				Log.v( TAG, "onClick : no button pressed" );
-				
-				break;
-		}
-		
-		Log.d( TAG, "onClick : exit" );
-	}
-
 
 	//***************************************
     // Private methods
@@ -327,20 +270,11 @@ public class FeedActivity extends ListActivity implements OnClickListener {
 	private void play() {
 		Log.d( TAG, "play : enter" );
 		
-	    startService( mediaPlayerReceiverIntent );
+		startActivity( new Intent( this, PlayerActivity.class ) );
 		
 		Log.d( TAG, "play : exit" );
 	}
 	
-	private void clearNowPlaying() {
-		Log.d( TAG, "clearNowPlaying : enter" );
-
-		( (MainApplication) getApplicationContext() ).setSelectedEntry( null );
-		( (MainApplication) getApplicationContext() ).setSelectedPlayType( null );
-		
-		Log.d( TAG, "clearNowPlaying : exit" );
-	}
-
     private BroadcastReceiver updateFeedBroadcastReceiver = new BroadcastReceiver() {
     	
         @Override
@@ -348,19 +282,6 @@ public class FeedActivity extends ListActivity implements OnClickListener {
     		Log.d( TAG, "onReceive : enter" );
 
     		refreshFeedEntries();
-    		
-    		Log.d( TAG, "onReceive : exit" );
-        }
-        
-    };
-    
-    private BroadcastReceiver mediaPlayerBroadcastReceiver = new BroadcastReceiver() {
-    	
-        @Override
-        public void onReceive( Context context, Intent intent ) {
-    		Log.d( TAG, "onReceive : enter" );
-
-    		clearNowPlaying();
     		
     		Log.d( TAG, "onReceive : exit" );
         }
