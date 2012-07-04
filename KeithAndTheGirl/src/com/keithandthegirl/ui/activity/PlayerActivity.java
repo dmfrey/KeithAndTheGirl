@@ -148,7 +148,7 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				
 				editName.setText( name );
 				editLocation.setText( location );
-				
+
 				break;
 		}
 		
