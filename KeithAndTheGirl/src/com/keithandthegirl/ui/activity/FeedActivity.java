@@ -22,6 +22,7 @@ package com.keithandthegirl.ui.activity;
 import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -58,6 +59,8 @@ public class FeedActivity extends ListActivity {
 
 	private Intent feedReceiverIntent;
 	
+	private ProgressDialog progressDialog;
+
 	//***************************************
     // Activity methods
     //***************************************
@@ -77,19 +80,9 @@ public class FeedActivity extends ListActivity {
 	    
 	    feedReceiverIntent = new Intent( this, UpdateFeedService.class );
 	    
-	    Log.d( TAG, "onCreate : exit" );
-	}
-
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onStart()
-	 */
-	@Override
-	public void onStart() {
-	    Log.d( TAG, "onStart : enter" );
-
-	    super.onStart();
+	    showProgressDialog();
 	    
-		Log.d( TAG, "onStart : exit" );
+	    Log.d( TAG, "onCreate : exit" );
 	}
 
 	/* (non-Javadoc)
@@ -244,6 +237,8 @@ public class FeedActivity extends ListActivity {
 		    });
 		}
 
+		dismissProgressDialog();
+		
 		Log.d( TAG, "refreshFeedEntries : exit" );
 	}
 	
@@ -288,4 +283,23 @@ public class FeedActivity extends ListActivity {
         
     };
     
+	public void showProgressDialog() {
+		showProgressDialog( "Loading Episodes. Please wait..." );
+	}
+	
+	private void showProgressDialog( String message) {
+		if( progressDialog == null ) {
+			progressDialog = new ProgressDialog( this );
+			progressDialog.setIndeterminate( true );
+		}
+		
+		progressDialog.setMessage( message );
+		progressDialog.show();
+	}
+	
+	private void dismissProgressDialog() {
+		if( progressDialog != null ) {
+			progressDialog.dismiss();
+		}
+	}
 }

@@ -17,11 +17,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -41,6 +46,8 @@ import com.keithandthegirl.services.MediaPlayerService;
 public class PlayerActivity extends FragmentActivity implements OnClickListener {
 
 	private static final String TAG = PlayerActivity.class.getSimpleName();
+	private static final int CALL_ID = Menu.FIRST + 1;
+	private static final int ABOUT_ID = Menu.FIRST + 2;
 
 	private static final String FEEDBACK_URL = "http://www.attackwork.com/Voxback/Comment-Form-Iframe.aspx";
 	private static final String FEEDBACK_URL_ENCODER = "UTF-8";
@@ -89,18 +96,6 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 	}
 
 	/* (non-Javadoc)
-	 * @see android.support.v4.app.FragmentActivity#onStart()
-	 */
-	@Override
-	public void onStart() {
-	    Log.d( TAG, "onStart : enter" );
-
-	    super.onStart();
-	    
-		Log.d( TAG, "onStart : exit" );
-	}
-
-	/* (non-Javadoc)
 	 * @see android.support.v4.app.FragmentActivity#onPause()
 	 */
 	@Override
@@ -132,9 +127,10 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 					nowPlayingTitle.setText( ( (MainApplication) getApplicationContext() ).getSelectedEntry().getTitle() );
 				}
 
-//				editName.setEnabled( false );
-//				editLocation.setEnabled( false );
-//				editComment.setEnabled( false );
+				editName.setEnabled( false );
+				editLocation.setEnabled( false );
+				editComment.setEnabled( false );
+				submitButton.setEnabled( false );
 				
 				break;
 			case LIVE :
@@ -144,18 +140,47 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				editName.setEnabled( true );
 				editLocation.setEnabled( true );
 				editComment.setEnabled( true );
+				submitButton.setEnabled( true );
 
+				SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
+				String name = sharedPreferences.getString( NAME_KEY, "" );
+				String location = sharedPreferences.getString( LOCATION_KEY, "" );
+				
+				editName.setText( name );
+				editLocation.setText( location );
+				
 				break;
 		}
 		
-		SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
-		String name = sharedPreferences.getString( NAME_KEY, "" );
-		String location = sharedPreferences.getString( LOCATION_KEY, "" );
-		
-		editName.setText( name );
-		editLocation.setText( location );
-		
 		Log.d( TAG, "onResume : exit" );
+	}
+
+	/* (non-Javadoc)
+	 * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
+	 */
+	@TargetApi( 11 )
+	@Override
+	public boolean onCreateOptionsMenu( Menu menu ) {
+		Log.d( TAG, "onCreateOptionsMenu : enter" );
+
+		switch( ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
+			case LIVE :
+	
+			    MenuItem call = menu.add( Menu.NONE, CALL_ID, Menu.NONE, "Call" );
+			    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+			    	call.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
+			    }
+            
+				break;
+		}
+
+	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, "About" );
+	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+	    	about.setShowAsAction( MenuItem.SHOW_AS_ACTION_IF_ROOM );
+	    }
+
+	    Log.d( TAG, "onCreateOptionsMenu : exit" );
+		return super.onCreateOptionsMenu( menu );
 	}
 
 	@Override
@@ -171,19 +196,41 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 	    		switch( ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
 	    			case RECORDED :
 				
-	    	            intent = new Intent( this, FeedActivity.class );
+	    	            intent = new Intent( this, EpisodesActivity.class );
 	    	            intent.addFlags( Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK );
 	    	            startActivity( intent );
 
-	    				break;
+	    	            return true;
 	    			case LIVE :
 				
 	    	            intent = new Intent( this, HomeActivity.class );
 	    	            intent.addFlags( Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK );
 	    	            startActivity( intent );
 				
-	    				break;
+	    	            return true;
 	    		}
+	    	case CALL_ID :
+				Log.d( TAG, "onOptionsItemSelected : call selected" );
+
+				Uri uri = Uri.parse( "tel:" + MainApplication.KATG_PHONE_NUMBER );
+				intent = new Intent( Intent.ACTION_DIAL, uri );
+				startActivity( intent );
+	    		
+				return true;
+			case ABOUT_ID:
+				Log.d( TAG, "onOptionsItemSelected : about selected" );
+
+				FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+				Fragment prev = getSupportFragmentManager().findFragmentByTag( "aboutDialog" );
+				if( null != prev ) {
+					ft.remove( prev );
+				}
+				ft.addToBackStack( null );
+
+				DialogFragment newFragment = AboutDialogFragment.newInstance();
+				newFragment.show( ft, "aboutDialog" );
+		    
+				return true;
 	    }
 	    
 	    Log.d( TAG, "onOptionsItemSelected : exit" );
@@ -212,16 +259,28 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				String name = editName.getText().toString();
 				if( null != name && !"".equals( name ) ) {
 					name = name.trim();
+
+    				if( name.length() > 50 ) {
+    					name = name.substring( 0, 50 );
+    				}
 				}
 				
 				String location = editLocation.getText().toString();
 				if( null != location && !"".equals( location ) ) {
 					location = location.trim();
+				
+    				if( location.length() > 50 ) {
+    					location = location.substring( 0, 50 );
+    				}
 				}
 
 				String comment = editComment.getText().toString();
 				if( null != comment && !"".equals( comment ) ) {
 					comment = comment.trim();
+					
+    				if( comment.length() > 512 ) {
+    					comment = comment.substring( 0, 512 );
+    				}
 				}
 				
 				savePreferences( NAME_KEY, name );
@@ -254,7 +313,9 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 	private void play() {
 		Log.d( TAG, "play : enter" );
 		
-	    startService( mediaPlayerReceiverIntent );
+		if( !( (MainApplication) getApplicationContext() ).isPlaying() ) {
+			startService( mediaPlayerReceiverIntent );
+		}
 		
 		Log.d( TAG, "play : exit" );
 	}
@@ -299,32 +360,8 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
     			RestTemplate template = new RestTemplate( true, ClientHttpRequestFactorySelector.getRequestFactory() );
 
     			String name = params[ 0 ];
-    			if( null != name && !"".equals( name ) ) {
-    				name = name.trim();
-    				
-    				if( name.length() > 50 ) {
-    					name = name.substring( 0, 50 );
-    				}
-    			}
-    			
     			String location = params[ 1 ];
-    			if( null != location && !"".equals( location ) ) {
-    				location = location.trim();
-    				
-    				if( location.length() > 50 ) {
-    					location = location.substring( 0, 50 );
-    				}
-    			}
-    			
     			String comment = params[ 2 ];
-    			if( null != comment && !"".equals( comment ) ) {
-    				comment = comment.trim();
-    				
-    				if( comment.length() > 50 ) {
-    					comment = comment.substring( 0, 50 );
-    				}
-    			}
-    			
     			
     			String encodedName = ( null != name && !"".equals( name ) ) ? URLEncoder.encode( name, FEEDBACK_URL_ENCODER ) : "";
     			String encodedLocation = ( null != location && !"".equals( location ) ) ? URLEncoder.encode( location, FEEDBACK_URL_ENCODER ) : "";
@@ -354,8 +391,8 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 			
 			if( null == exception ) {
 				
-				if( null != result ) {
-					Log.i( TAG, "result=" + result );
+				if( null != result && result.indexOf( "Message Sent" ) != -1 ) {
+					//Log.i( TAG, "result=" + result );
 	
 					toastComment( "Comment sent successfully!" );
 				} else {

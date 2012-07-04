@@ -51,6 +51,8 @@ public class MainApplication extends Application {
 	
 	private Feed calendarFeed;
 	
+	private boolean playing;
+	
 	//***************************************
     // Application methods
     //***************************************
@@ -137,6 +139,22 @@ public class MainApplication extends Application {
 	 */
 	public void setCalendarFeed( Feed calendarFeed ) {
 		this.calendarFeed = calendarFeed;
+	}
+
+
+	/**
+	 * @return the playing
+	 */
+	public boolean isPlaying() {
+		return playing;
+	}
+
+
+	/**
+	 * @param playing the playing to set
+	 */
+	public void setPlaying( boolean playing ) {
+		this.playing = playing;
 	}
 
 }

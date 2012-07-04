@@ -59,7 +59,7 @@ public class ListenDashboardFragment extends Fragment {
 			public void onClick( View view ) {
 				Log.v( TAG, "feed.onClick : enter" );
 				
-				startActivity( new Intent( getActivity(), FeedActivity.class ) );
+				startActivity( new Intent( getActivity(), EpisodesActivity.class ) );
 
 				Log.v( TAG, "feed.onClick : exit" );
 			}

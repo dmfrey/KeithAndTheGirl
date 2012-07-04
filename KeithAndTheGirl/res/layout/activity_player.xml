@@ -130,7 +130,7 @@
     	    android:id="@+id/player_feedback_name"
     	    android:layout_width="0dp"
     	    android:layout_height="wrap_content"
-    	    android:layout_weight="100"
+    	    android:layout_weight="144.20"
     	    android:ems="10"
     	    android:inputType="text"
     	    android:maxLength="50" >
@@ -198,8 +198,9 @@
     	
     	<EditText
     	    android:id="@+id/player_feedback_comment"
-    	    android:layout_width="match_parent"
+    	    android:layout_width="0dp"
     	    android:layout_height="wrap_content"
+    	    android:layout_weight="100"
     	    android:ems="10"
     	    android:inputType="textMultiLine"
     	    android:lines="3"

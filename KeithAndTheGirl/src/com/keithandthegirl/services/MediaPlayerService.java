@@ -90,6 +90,8 @@ public class MediaPlayerService extends Service {
 		mp.stop();
 		mp.release();
 		
+		applicationContext.setPlaying( false );
+		
 		Log.d( TAG, "onDestroy : exit" );
 	}
 
@@ -107,6 +109,8 @@ public class MediaPlayerService extends Service {
 
 		currentPlayType = applicationContext.getSelectedPlayType();
 
+		applicationContext.setPlaying( true );
+		
 		switch( currentPlayType ) {
 			case LIVE:
 				playLive();
