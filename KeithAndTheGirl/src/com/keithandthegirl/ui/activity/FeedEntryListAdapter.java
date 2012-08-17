@@ -17,7 +17,7 @@
  * This software can be found at <https://github.com/dmfrey/KeithAndTheGirl/>
  *
  */
-package com.keithandthegirl.activities;
+package com.keithandthegirl.ui.activity;
 
 import java.util.List;
 

@@ -90,8 +90,6 @@ public class MediaPlayerService extends Service {
 		mp.stop();
 		mp.release();
 		
-		applicationContext.setPlaying( false );
-		
 		Log.d( TAG, "onDestroy : exit" );
 	}
 
@@ -99,6 +97,7 @@ public class MediaPlayerService extends Service {
 	 * @see android.app.Service#onStart(android.content.Intent, int)
 	 */
 	@Override
+	@SuppressWarnings( "deprecation" )
 	public void onStart( Intent intent, int startId ) {
 		super.onStart( intent, startId );
 		Log.d( TAG, "onStart : enter" );
@@ -152,6 +151,8 @@ public class MediaPlayerService extends Service {
     
 	private void clearNotification() {
 		Log.d( TAG, "clearNotification : enter" );
+
+		applicationContext.setPlaying( false );
 
 		nm.cancel( NOTIFY_ID );
 
@@ -215,8 +216,9 @@ public class MediaPlayerService extends Service {
 		Log.d( TAG, "playRecorded : exit" );
 	}
 
+	@SuppressWarnings( "deprecation" )
 	private void notify( String title, String description ) {
-		Notification notification = new Notification( R.drawable.ic_katg_notification, title, System.currentTimeMillis() );
+		Notification notification = new Notification( R.drawable.ic_notification, title, System.currentTimeMillis() );
 
 		Intent notificationIntent = new Intent( this, PlayerActivity.class );
 		PendingIntent contentIntent = PendingIntent.getActivity( this, 0, notificationIntent, 0 );

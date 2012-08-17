@@ -4,7 +4,17 @@
 
     <!-- Theme Styles -->
 
-	<style name="LightThemeSelector" parent="android:style/Theme.DeviceDefault.Light">
+	<style name="LightThemeSelector" parent="android:style/Theme.Holo.Light">
+		<item name="android:actionBarStyle">@style/LightThemeSelector.ActionBar</item>
     </style>
 
+	<style name="LightThemeSelector.ActionBar" parent="@android:style/Widget.Holo.Light.ActionBar">
+        <item name="android:background">#FFFFFF</item>
+        <item name="android:titleTextStyle">@style/LightThemeSelector.ActionBar.Text</item>
+    </style>
+    
+	<style name="LightThemeSelector.ActionBar.Text" parent="@android:style/TextAppearance">
+        <item name="android:textColor">@color/actionbar_text</item>
+    </style>
+	
 </resources>

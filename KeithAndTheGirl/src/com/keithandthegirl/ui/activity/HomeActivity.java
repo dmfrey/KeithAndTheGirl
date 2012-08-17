@@ -88,12 +88,12 @@ public class HomeActivity extends FragmentActivity {
 	public boolean onCreateOptionsMenu( Menu menu ) {
 		Log.d( TAG, "onCreateOptionsMenu : enter" );
 
-	    MenuItem prefs = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, "About" );
+	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, getResources().getString( R.string.about_header ) );
 	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
-	    	prefs.setShowAsAction( MenuItem.SHOW_AS_ACTION_IF_ROOM );
+	    	about.setShowAsAction( MenuItem.SHOW_AS_ACTION_NEVER );
 	    }
 
-		Log.d( TAG, "onCreateOptionsMenu : exit" );
+	    Log.d( TAG, "onCreateOptionsMenu : exit" );
 		return super.onCreateOptionsMenu( menu );
 	}
 

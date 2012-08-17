@@ -19,12 +19,12 @@
  */
 package com.keithandthegirl.ui.activity;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
 import com.keithandthegirl.R;
 
@@ -55,21 +55,26 @@ public class AboutDialogFragment extends DialogFragment {
 	}
 
 	/* (non-Javadoc)
-	 * @see android.support.v4.app.Fragment#onCreateView(android.view.LayoutInflater, android.view.ViewGroup, android.os.Bundle)
+	 * @see android.support.v4.app.DialogFragment#onCreateDialog(android.os.Bundle)
 	 */
 	@Override
-	public View onCreateView( LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState ) {
-		Log.v( TAG, "onCreateView : enter" );
+	public Dialog onCreateDialog( Bundle savedInstanceState ) {
+		Log.v( TAG, "onCreateDialog : enter" );
 
-		View v = inflater.inflate( R.layout.fragment_about, container, false );
-		
-		getDialog().setTitle( getResources().getString( R.string.about_header ) );
-		getDialog().setCancelable( true );
-		getDialog().setCanceledOnTouchOutside( true );
-		
-		
-		Log.v( TAG, "onCreateView : exit" );
-		return v;
+		Log.v( TAG, "onCreateDialog : exit" );
+		return new AlertDialog.Builder( getActivity() )
+			.setView( getActivity().getLayoutInflater().inflate( R.layout.fragment_about, null ) )
+        	.setIcon( android.R.drawable.ic_dialog_info )
+        	.setTitle( getResources().getString( R.string.about_header ) )
+        	.setPositiveButton( R.string.about_close,
+        		new DialogInterface.OnClickListener() {
+               		public void onClick( DialogInterface dialog, int whichButton ) {
+               			getDialog().dismiss();
+               		}
+            	}
+        	)
+        	.setCancelable( true )
+        	.show();
 	}
 
 }

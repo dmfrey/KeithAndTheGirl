@@ -63,6 +63,7 @@ public class UpdateFeedService extends Service {
 	/* (non-Javadoc)
 	 * @see android.app.Service#onStart(android.content.Intent, int)
 	 */
+	@SuppressWarnings( "deprecation" )
 	@Override
 	public void onStart( Intent intent, int startId ) {
 		super.onStart( intent, startId );

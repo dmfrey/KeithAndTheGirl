@@ -152,6 +152,18 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				break;
 		}
 		
+		editName.setEnabled( true );
+		editLocation.setEnabled( true );
+		editComment.setEnabled( true );
+		submitButton.setEnabled( true );
+
+		SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
+		String name = sharedPreferences.getString( NAME_KEY, "" );
+		String location = sharedPreferences.getString( LOCATION_KEY, "" );
+		
+		editName.setText( name );
+		editLocation.setText( location );
+
 		Log.d( TAG, "onResume : exit" );
 	}
 
@@ -163,20 +175,25 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 	public boolean onCreateOptionsMenu( Menu menu ) {
 		Log.d( TAG, "onCreateOptionsMenu : enter" );
 
-		switch( ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
-			case LIVE :
+		//if( null != ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
+			switch( ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
+				case LIVE :
 	
-			    MenuItem call = menu.add( Menu.NONE, CALL_ID, Menu.NONE, "Call" );
-			    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
-			    	call.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
-			    }
+			    	MenuItem call = menu.add( Menu.NONE, CALL_ID, Menu.NONE, "Call" );
+			    	call.setIcon( android.R.drawable.ic_menu_call );
+			    	if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+			    		call.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
+			    	}
             
-				break;
-		}
-
-	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, "About" );
+					break;
+				default:
+					break;
+			}
+		//}
+		
+	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, getResources().getString( R.string.about_header ) );
 	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
-	    	about.setShowAsAction( MenuItem.SHOW_AS_ACTION_IF_ROOM );
+	    	about.setShowAsAction( MenuItem.SHOW_AS_ACTION_NEVER );
 	    }
 
 	    Log.d( TAG, "onCreateOptionsMenu : exit" );
@@ -286,7 +303,9 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				savePreferences( NAME_KEY, name );
 				savePreferences( LOCATION_KEY, location );
 				
-				new PostCommentTask().execute( name, location, comment );
+				if( null != comment && !"".equals( comment ) ) {
+					new PostCommentTask().execute( name, location, comment );
+				}
 				
 				editComment.setText( "" );
 				
@@ -324,7 +343,7 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 		Log.d( TAG, "clearNowPlaying : enter" );
 
 		( (MainApplication) getApplicationContext() ).setSelectedEntry( null );
-		( (MainApplication) getApplicationContext() ).setSelectedPlayType( null );
+		//( (MainApplication) getApplicationContext() ).setSelectedPlayType( null );
 		
 		Log.d( TAG, "clearNowPlaying : exit" );
 	}
@@ -390,9 +409,9 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 		protected void onPostExecute( String result ) {
 			
 			if( null == exception ) {
+				Log.i( TAG, "result=" + result );
 				
 				if( null != result && result.indexOf( "Message Sent" ) != -1 ) {
-					//Log.i( TAG, "result=" + result );
 	
 					toastComment( "Comment sent successfully!" );
 				} else {

@@ -48,7 +48,6 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.Syn
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
-import com.keithandthegirl.activities.FeedEntryListAdapter;
 import com.keithandthegirl.services.UpdateFeedService;
 
 /**
@@ -80,9 +79,9 @@ public class EpisodesActivity extends FragmentActivity {
 	public boolean onCreateOptionsMenu( Menu menu ) {
 		Log.d( TAG, "onCreateOptionsMenu : enter" );
 
-	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, "About" );
+	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, getResources().getString( R.string.about_header ) );
 	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
-	    	about.setShowAsAction( MenuItem.SHOW_AS_ACTION_IF_ROOM );
+	    	about.setShowAsAction( MenuItem.SHOW_AS_ACTION_NEVER );
 	    }
 
 		Log.d( TAG, "onCreateOptionsMenu : exit" );
@@ -198,7 +197,8 @@ public class EpisodesActivity extends FragmentActivity {
 			Log.v( TAG, "onCreateOptionsMenu : enter" );
 			super.onCreateOptionsMenu( menu, inflater );
 
-		    MenuItem refresh = menu.add( Menu.NONE, REFRESH_ID, Menu.NONE, "Refresh" );
+		    MenuItem refresh = menu.add( Menu.NONE, REFRESH_ID, Menu.NONE, getResources().getString( R.string.menu_refresh ) );
+		    refresh.setIcon( android.R.drawable.ic_popup_sync );
 		    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
 		    	refresh.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
 		    }
