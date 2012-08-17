@@ -128,19 +128,27 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				}
 
 				editName.setEnabled( false );
+				editName.setVisibility( View.GONE );
 				editLocation.setEnabled( false );
+				editLocation.setVisibility( View.GONE );
 				editComment.setEnabled( false );
+				editComment.setVisibility( View.GONE );
 				submitButton.setEnabled( false );
-				
+				submitButton.setVisibility( View.GONE );
+
 				break;
 			case LIVE :
 				
 				nowPlayingTitle.setText( "Streaming Live!!" );
 				
 				editName.setEnabled( true );
+				editName.setVisibility( View.VISIBLE );
 				editLocation.setEnabled( true );
+				editLocation.setVisibility( View.VISIBLE );
 				editComment.setEnabled( true );
+				editComment.setVisibility( View.VISIBLE );
 				submitButton.setEnabled( true );
+				submitButton.setVisibility( View.VISIBLE );
 
 				SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
 				String name = sharedPreferences.getString( NAME_KEY, "" );
