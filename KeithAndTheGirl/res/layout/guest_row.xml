@@ -67,34 +67,34 @@
         		android:id="@+id/guest_facebook"
         		android:contentDescription="@string/guest_facebook"
         		android:scaleType="center"
-        		android:layout_width="36dp"
-        		android:layout_height="24dp"
-        		android:paddingLeft="10dp"
-        		android:paddingRight="10dp"
+        		android:layout_width="42dp"
+        		android:layout_height="32dp"
+        		android:paddingLeft="5sp"
+        		android:paddingRight="5sp"
         		android:adjustViewBounds="true"
-        		android:src="@drawable/f_logo_16x16" />
+        		android:src="@drawable/f_logo" />
         
     		<ImageView
         		android:id="@+id/guest_twitter"
         		android:contentDescription="@string/guest_twitter"
         		android:scaleType="center"
-        		android:layout_width="36dp"
-        		android:layout_height="24dp"
-        		android:paddingLeft="10dp"
-        		android:paddingRight="10dp"
+        		android:layout_width="42dp"
+        		android:layout_height="32dp"
+        		android:paddingLeft="5sp"
+        		android:paddingRight="5sp"
         		android:adjustViewBounds="true"
-        		android:src="@drawable/twitter_bird_16x16" />
+        		android:src="@drawable/t_logo" />
         
     		<ImageView
         		android:id="@+id/guest_www"
         		android:contentDescription="@string/guest_www"
         		android:scaleType="center"
-        		android:layout_width="36dp"
-        		android:layout_height="24dp"
-        		android:paddingLeft="10dp"
-        		android:paddingRight="10dp"
+        		android:layout_width="42dp"
+        		android:layout_height="32dp"
+        		android:paddingLeft="5sp"
+        		android:paddingRight="5sp"
         		android:adjustViewBounds="true"
-        		android:src="@drawable/www_16x16" />
+        		android:src="@drawable/www" />
         
     	</LinearLayout>
         
