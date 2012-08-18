@@ -57,4 +57,9 @@
     
     <string name="quit">Quit</string>
     
+    <string name="guest_image">Guest Image</string>
+    <string name="guest_facebook">Facebook</string>
+    <string name="guest_twitter">Twitter</string>
+    <string name="guest_www">Website</string>
+    
 </resources>

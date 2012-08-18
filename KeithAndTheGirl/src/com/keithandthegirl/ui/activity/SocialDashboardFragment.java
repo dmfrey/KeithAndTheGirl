@@ -64,8 +64,8 @@ public class SocialDashboardFragment extends Fragment {
 			public void onClick( View view ) {
 				Log.v( TAG, "facebook.keith.onClick : enter" );
 				
-				Intent tweetIntent = new Intent( Intent.ACTION_VIEW, Uri.parse( FACEBOOK_ADDRESS + "KeithMalley" ) ); 
-				startActivity( tweetIntent );
+				Intent facebookIntent = new Intent( Intent.ACTION_VIEW, Uri.parse( FACEBOOK_ADDRESS + "KeithMalley" ) ); 
+				startActivity( facebookIntent );
 				
 				Log.v( TAG, "facebook.keith.onClick : exit" );
 			}
@@ -76,8 +76,8 @@ public class SocialDashboardFragment extends Fragment {
 			public void onClick( View view ) {
 				Log.v( TAG, "facebook.chemda.onClick : enter" );
 
-				Intent tweetIntent = new Intent( Intent.ACTION_VIEW, Uri.parse( FACEBOOK_ADDRESS + "chemda" ) ); 
-				startActivity( tweetIntent );
+				Intent facebookIntent = new Intent( Intent.ACTION_VIEW, Uri.parse( FACEBOOK_ADDRESS + "chemda" ) ); 
+				startActivity( facebookIntent );
 
 	            Log.v( TAG, "facebook.chemda.onClick : exit" );
 			}

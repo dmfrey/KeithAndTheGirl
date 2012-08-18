@@ -26,6 +26,7 @@
     
     <ImageView
         android:id="@+id/guest_image"
+        android:contentDescription="@string/guest_image"
         android:scaleType="centerCrop"
         android:layout_width="70dp"
         android:layout_height="70dp"/>
@@ -55,6 +56,47 @@
             android:textColor="@color/body_text_1"
             android:textSize="12sp"
         />
+        
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    		android:orientation="horizontal"
+    		android:layout_width="fill_parent"
+    		android:layout_height="wrap_content"
+    		android:gravity="right">
+        
+    		<ImageView
+        		android:id="@+id/guest_facebook"
+        		android:contentDescription="@string/guest_facebook"
+        		android:scaleType="center"
+        		android:layout_width="36dp"
+        		android:layout_height="24dp"
+        		android:paddingLeft="10dp"
+        		android:paddingRight="10dp"
+        		android:adjustViewBounds="true"
+        		android:src="@drawable/f_logo_16x16" />
+        
+    		<ImageView
+        		android:id="@+id/guest_twitter"
+        		android:contentDescription="@string/guest_twitter"
+        		android:scaleType="center"
+        		android:layout_width="36dp"
+        		android:layout_height="24dp"
+        		android:paddingLeft="10dp"
+        		android:paddingRight="10dp"
+        		android:adjustViewBounds="true"
+        		android:src="@drawable/twitter_bird_16x16" />
+        
+    		<ImageView
+        		android:id="@+id/guest_www"
+        		android:contentDescription="@string/guest_www"
+        		android:scaleType="center"
+        		android:layout_width="36dp"
+        		android:layout_height="24dp"
+        		android:paddingLeft="10dp"
+        		android:paddingRight="10dp"
+        		android:adjustViewBounds="true"
+        		android:src="@drawable/www_16x16" />
+        
+    	</LinearLayout>
         
     </LinearLayout>
     
