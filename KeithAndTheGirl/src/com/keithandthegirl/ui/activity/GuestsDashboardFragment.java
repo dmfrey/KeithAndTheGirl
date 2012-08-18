@@ -113,6 +113,23 @@ public class GuestsDashboardFragment extends ListFragment {
 	
 	// internal helpers
 	
+	/* (non-Javadoc)
+	 * @see android.support.v4.app.Fragment#onResume()
+	 */
+	@Override
+	public void onResume() {
+		Log.v( TAG, "onResume : enter" );
+		super.onResume();
+
+		if( null == mainApplication.getGuest() ) {
+			new DownloadGuestTask().execute( MainApplication.Sort.MOST_RECENT );
+		} else {
+			setupAdapter();
+		}
+
+		Log.v( TAG, "onResume : exit" );
+	}
+
 	private void setupAdapter() {
 	    
 		adapter = new GuestRowAdapter( getActivity().getApplicationContext(), mainApplication.getGuest().getGuests() );
