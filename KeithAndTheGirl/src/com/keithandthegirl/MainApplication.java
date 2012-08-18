@@ -26,6 +26,7 @@ import android.app.Application;
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEntry;
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndFeed;
 import com.keithandthegirl.api.google.Feed;
+import com.keithandthegirl.api.guests.Guests;
 
 /**
  * @author Daniel Frey
@@ -38,9 +39,27 @@ public class MainApplication extends Application {
 	public static final String KATG_LIVE_STREAM = "http://liveshow.keithandthegirl.com:8004/";
 	public static final String KATG_RSS_FEED = "http://www.keithandthegirl.com/rss/";
 	public static final String KATG_PHONE_NUMBER = "6465028682";
-
+	public static final String KATG_GUEST_URL = "http://www.keithandthegirl.com/Api/App/guest/list-all/";
+	
 	public enum PlayType{ LIVE, RECORDED };
 
+	public enum Sort{
+		MOST_RECENT( 0 ),
+		TOP_COUNT( 1 ),
+		NAME( 2 );
+		
+		private Integer type;
+		
+		Sort( Integer type ) {
+			this.type = type;
+		}
+		
+		public Integer getType() {
+			return type;
+		}
+		
+	}
+	
 	private SimpleDateFormat format = new SimpleDateFormat( "yyyy-MM-dd" );
 	
 	private SyndFeed feed;
@@ -52,6 +71,8 @@ public class MainApplication extends Application {
 	private Feed calendarFeed;
 	
 	private boolean playing;
+	
+	private Guests guest;
 	
 	//***************************************
     // Application methods
@@ -155,6 +176,22 @@ public class MainApplication extends Application {
 	 */
 	public void setPlaying( boolean playing ) {
 		this.playing = playing;
+	}
+
+
+	/**
+	 * @return the guest
+	 */
+	public Guests getGuest() {
+		return guest;
+	}
+
+
+	/**
+	 * @param guest the guest to set
+	 */
+	public void setGuest( Guests guest ) {
+		this.guest = guest;
 	}
 
 }
