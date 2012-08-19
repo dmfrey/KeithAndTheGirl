@@ -38,7 +38,10 @@
 
     <string name="menu_refresh">Refresh</string>
     <string name="menu_share">Share</string>
-    
+    <string name="menu_most_recent">Recent</string>
+    <string name="menu_top_count">Top</string>
+    <string name="menu_name">Name</string>
+        
     <string name="btn_feed">Episodes</string>
     <string name="btn_live">Listen Live</string>
     <string name="btn_twitter_keith">Twitter Keith</string>

@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,17 +41,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.social.support.ClientHttpRequestFactorySelector;
 import org.springframework.web.client.RestTemplate;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -71,9 +76,15 @@ import com.keithandthegirl.api.guests.Url;
 public class GuestsDashboardFragment extends ListFragment {
 
 	private final static String TAG = GuestsDashboardFragment.class.getSimpleName();
-	private static final int REFRESH_ID = Menu.FIRST + 1;
+	
+	private static final int REFRESH_ID = Menu.FIRST + 10;
+	private static final int MOST_RECENT_ID = Menu.FIRST + 11;
+	private static final int TOP_COUNT_ID = Menu.FIRST + 12;
+	private static final int NAME_ID = Menu.FIRST + 13;
 
 	private MainApplication mainApplication;
+	
+	private List<Guest> guestList = new ArrayList<Guest>();
 	
 	private GuestRowAdapter adapter;
 	private Map<Integer, Bitmap> images = new TreeMap<Integer, Bitmap>();
@@ -102,16 +113,10 @@ public class GuestsDashboardFragment extends ListFragment {
 		setHasOptionsMenu( true );
 		setRetainInstance( true );
 
-		if( null == mainApplication.getGuest() ) {
-			new DownloadGuestTask().execute( MainApplication.Sort.MOST_RECENT );
-		} else {
-			setupAdapter();
-		}
+		setupAdapter();
 		
 		Log.v( TAG, "onActivityCreated : exit" );
 	}
-	
-	// internal helpers
 	
 	/* (non-Javadoc)
 	 * @see android.support.v4.app.Fragment#onResume()
@@ -121,35 +126,129 @@ public class GuestsDashboardFragment extends ListFragment {
 		Log.v( TAG, "onResume : enter" );
 		super.onResume();
 
-		if( null == mainApplication.getGuest() ) {
+		if( null != mainApplication.getGuest() ) {
+			Log.v( TAG, "onResume : already downloaded guest list" );
+			
+			if( null != mainApplication.getGuest().getGuests() && !mainApplication.getGuest().getGuests().isEmpty() ) {
+				Log.v( TAG, "onResume : guestList has entries" );
+				
+				guestList = mainApplication.getGuest().getGuests();
+			}
+		}
+
+		if( guestList.isEmpty() ) {
+			Log.v( TAG, "onResume : guestList is empty" );
+
+			mainApplication.setGuestSort( MainApplication.Sort.MOST_RECENT );
 			new DownloadGuestTask().execute( MainApplication.Sort.MOST_RECENT );
-		} else {
-			setupAdapter();
 		}
 
 		Log.v( TAG, "onResume : exit" );
 	}
 
+	/* (non-Javadoc)
+	 * @see android.support.v4.app.Fragment#onCreateOptionsMenu(android.view.Menu, android.view.MenuInflater)
+	 */
+	@Override
+	@TargetApi( 11 )
+	public void onCreateOptionsMenu( Menu menu, MenuInflater inflater ) {
+		Log.v( TAG, "onCreateOptionsMenu : enter" );
+		super.onCreateOptionsMenu( menu, inflater );
+
+	    MenuItem refresh = menu.add( Menu.NONE, REFRESH_ID, Menu.NONE, getResources().getString( R.string.menu_refresh ) );
+	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+	    	refresh.setShowAsAction( MenuItem.SHOW_AS_ACTION_NEVER );
+	    }
+
+	    MenuItem mostRecent = menu.add( Menu.NONE, MOST_RECENT_ID, Menu.NONE, getResources().getString( R.string.menu_most_recent ) );
+	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+	    	mostRecent.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
+	    }
+
+	    MenuItem topCount = menu.add( Menu.NONE, TOP_COUNT_ID, Menu.NONE, getResources().getString( R.string.menu_top_count ) );
+	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+	    	topCount.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
+	    }
+
+	    MenuItem name = menu.add( Menu.NONE, NAME_ID, Menu.NONE, getResources().getString( R.string.menu_name ) );
+	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+	    	name.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
+	    }
+
+	    Log.v( TAG, "onCreateOptionsMenu : exit" );
+	}
+
+	/* (non-Javadoc)
+	 * @see android.support.v4.app.Fragment#onOptionsItemSelected(android.view.MenuItem)
+	 */
+	@Override
+	public boolean onOptionsItemSelected( MenuItem item ) {
+	    Log.v( TAG, "onOptionsItemSelected : enter" );
+	    Log.v( TAG, "onOptionsItemSelected : item=" + item.getItemId() );
+	    
+	    switch( item.getItemId() ) {
+	    case REFRESH_ID :
+	    	Log.v( TAG, "onOptionsItemSelected : refresh selected" );
+	    	
+	    	if( null == mainApplication.getGuestSort() ) {
+		    	mainApplication.setGuestSort( MainApplication.Sort.MOST_RECENT );
+	    	}
+	    	
+	    	new DownloadGuestTask().execute( mainApplication.getGuestSort() );
+	    	
+	    	return true;
+	    case MOST_RECENT_ID :
+	    	Log.v( TAG, "onOptionsItemSelected : most recent selected" );
+			
+	    	mainApplication.setGuestSort( MainApplication.Sort.MOST_RECENT );
+	    	new DownloadGuestTask().execute( MainApplication.Sort.MOST_RECENT );
+
+			return true;
+	    case TOP_COUNT_ID :
+	    	Log.v( TAG, "onOptionsItemSelected : top count selected" );
+
+	    	mainApplication.setGuestSort( MainApplication.Sort.TOP_COUNT );
+	    	new DownloadGuestTask().execute( MainApplication.Sort.TOP_COUNT );
+
+			return true;
+	    case NAME_ID :
+	    	Log.v( TAG, "onOptionsItemSelected : name selected" );
+
+	    	mainApplication.setGuestSort( MainApplication.Sort.NAME );
+	    	new DownloadGuestTask().execute( MainApplication.Sort.NAME );
+
+	    	return true;
+	    }
+	    
+	    Log.v( TAG, "onOptionsItemSelected : exit" );
+		return super.onOptionsItemSelected( item );
+	}
+
+	// internal helpers
+	
 	private void setupAdapter() {
 	    
-		adapter = new GuestRowAdapter( getActivity().getApplicationContext(), mainApplication.getGuest().getGuests() );
+		getListView().invalidate();
+		adapter = new GuestRowAdapter( getActivity().getApplicationContext(), guestList );
 	    
-		
 	    setListAdapter( adapter );
 	    getListView().setFastScrollEnabled( true );
-
+	    
 	}
 	
 	private void setDownloadedGuests( Guests guests ) {
-		
+
+		this.guestList = guests.getGuests();
 		mainApplication.setGuest( guests );
 		setupAdapter();
 		
+	    adapter.notifyDataSetChanged();
+
 	}
 	
 	private class GuestRowAdapter extends BaseAdapter {
 
-		private Context mContext;
+		//private Context mContext;
 		private LayoutInflater mInflater;
 
 		private List<Guest> guests;
@@ -157,7 +256,7 @@ public class GuestsDashboardFragment extends ListFragment {
 		public GuestRowAdapter( Context context, List<Guest> guests ) {
 			Log.v( TAG, "GuestRowAdapter : enter" );
 			
-			mContext = context;
+			//mContext = context;
 			mInflater = LayoutInflater.from( context );
 
 			this.guests = guests;
@@ -380,6 +479,7 @@ public class GuestsDashboardFragment extends ListFragment {
 			HttpEntity<?> entity = new HttpEntity<Object>( requestHeaders );
 			
 			try {
+				Log.v( TAG, "DownloadGuestsTask.doInBackground : url=" + MainApplication.KATG_GUEST_URL + "?sortType=" + sortType.getType() );
 				ResponseEntity<Guests> responseEntity = template.exchange( MainApplication.KATG_GUEST_URL + "?sortType=" + sortType.getType(), HttpMethod.GET, entity, Guests.class );
 				switch( responseEntity.getStatusCode() ) {
 					case OK :

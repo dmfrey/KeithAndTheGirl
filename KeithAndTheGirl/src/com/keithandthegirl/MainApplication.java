@@ -74,6 +74,8 @@ public class MainApplication extends Application {
 	
 	private Guests guest;
 	
+	private Sort guestSort;
+	
 	//***************************************
     // Application methods
     //***************************************
@@ -192,6 +194,22 @@ public class MainApplication extends Application {
 	 */
 	public void setGuest( Guests guest ) {
 		this.guest = guest;
+	}
+
+
+	/**
+	 * @return the guestSort
+	 */
+	public Sort getGuestSort() {
+		return guestSort;
+	}
+
+
+	/**
+	 * @param guestSort the guestSort to set
+	 */
+	public void setGuestSort( Sort guestSort ) {
+		this.guestSort = guestSort;
 	}
 
 }
