@@ -32,6 +32,8 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.Syn
 import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.FeedFetcher;
 import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.HttpURLFeedFetcher;
 import com.keithandthegirl.MainApplication;
+import com.keithandthegirl.utils.NotificationHelper;
+import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
 /**
  * @author Daniel Frey
@@ -45,7 +47,9 @@ public class UpdateFeedService extends Service {
     private final Handler handler = new Handler();
 	private Intent broadcastIntent;
 
-    private MainApplication applicationContext;
+	private NotificationHelper mNotificationHelper;
+
+	private MainApplication applicationContext;
     
     /* (non-Javadoc)
      * @see android.app.Service#onCreate()
@@ -56,6 +60,8 @@ public class UpdateFeedService extends Service {
 		Log.d( TAG, "onCreate : enter" );
 
 		broadcastIntent = new Intent( BROADCAST_ACTION );	
+
+		mNotificationHelper = new NotificationHelper( this );
 
 		Log.d( TAG, "onCreate : exit" );
     }
@@ -114,7 +120,9 @@ public class UpdateFeedService extends Service {
 			Log.v( TAG, "doInBackground : enter" );
 
 			try {
-				FeedFetcher feedFetcher = new HttpURLFeedFetcher();
+                mNotificationHelper.createNotification( "KeithAndTheGirl", "Refreshing KATG RSS Feed", NotificationType.SYNC );
+
+                FeedFetcher feedFetcher = new HttpURLFeedFetcher();
 				
 				Log.v( TAG, "doInBackground : exit" );
 				return feedFetcher.retrieveFeed( new URL( params[ 0 ] ) );
@@ -131,8 +139,8 @@ public class UpdateFeedService extends Service {
 		 */
 		@Override
 		protected void onProgressUpdate( Void... values ) {
-			super.onProgressUpdate( values );
 			Log.v( TAG, "onProgressUpdate : enter" );
+			super.onProgressUpdate( values );
 			
 			Log.v( TAG, "onProgressUpdate : exit" );
 		}
@@ -144,7 +152,9 @@ public class UpdateFeedService extends Service {
 			if( null != syndFeed ) {
 				setFeed( syndFeed );
 			}
-
+ 
+			mNotificationHelper.completed();
+			
 			Log.v( TAG, "onPostExecute : exit" );
 		}
 

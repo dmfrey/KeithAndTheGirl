@@ -50,6 +50,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.ListFragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -68,6 +69,8 @@ import com.keithandthegirl.R;
 import com.keithandthegirl.api.guests.Guest;
 import com.keithandthegirl.api.guests.Guests;
 import com.keithandthegirl.api.guests.Url;
+import com.keithandthegirl.utils.NotificationHelper;
+import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
 /**
  * @author Daniel Frey
@@ -84,6 +87,9 @@ public class GuestsDashboardFragment extends ListFragment {
 
 	private MainApplication mainApplication;
 	
+	private NotificationHelper mNotificationHelper;
+	private boolean notify = false;
+
 	private List<Guest> guestList = new ArrayList<Guest>();
 	
 	private GuestRowAdapter adapter;
@@ -113,6 +119,8 @@ public class GuestsDashboardFragment extends ListFragment {
 		setHasOptionsMenu( true );
 		setRetainInstance( true );
 
+		mNotificationHelper = new NotificationHelper( getActivity() );
+
 		setupAdapter();
 		
 		Log.v( TAG, "onActivityCreated : exit" );
@@ -141,6 +149,8 @@ public class GuestsDashboardFragment extends ListFragment {
 
 			mainApplication.setGuestSort( MainApplication.Sort.MOST_RECENT );
 			new DownloadGuestTask().execute( MainApplication.Sort.MOST_RECENT );
+		} else {
+			setupAdapter();
 		}
 
 		Log.v( TAG, "onResume : exit" );
@@ -185,6 +195,8 @@ public class GuestsDashboardFragment extends ListFragment {
 	public boolean onOptionsItemSelected( MenuItem item ) {
 	    Log.v( TAG, "onOptionsItemSelected : enter" );
 	    Log.v( TAG, "onOptionsItemSelected : item=" + item.getItemId() );
+	    
+	    notify = true;
 	    
 	    switch( item.getItemId() ) {
 	    case REFRESH_ID :
@@ -330,7 +342,12 @@ public class GuestsDashboardFragment extends ListFragment {
 
 				mHolder.image.setVisibility( View.VISIBLE );
 				
-	            File root = getActivity().getExternalCacheDir();
+	            File root;
+	            if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
+	            	root = getActivity().getExternalCacheDir();
+	            } else {
+	            	root = Environment.getExternalStorageDirectory();
+	            }
 	            
 	            File pictureDir = new File( root, DownloadGuestImageTask.GUESTS_DIR );
 	            pictureDir.mkdirs();
@@ -479,7 +496,11 @@ public class GuestsDashboardFragment extends ListFragment {
 			HttpEntity<?> entity = new HttpEntity<Object>( requestHeaders );
 			
 			try {
-				Log.v( TAG, "DownloadGuestsTask.doInBackground : url=" + MainApplication.KATG_GUEST_URL + "?sortType=" + sortType.getType() );
+                if( notify ) {
+                	mNotificationHelper.createNotification( "KeithAndTheGirl", "Refreshing Guest List", NotificationType.SYNC );
+                }
+                
+                Log.v( TAG, "DownloadGuestsTask.doInBackground : url=" + MainApplication.KATG_GUEST_URL + "?sortType=" + sortType.getType() );
 				ResponseEntity<Guests> responseEntity = template.exchange( MainApplication.KATG_GUEST_URL + "?sortType=" + sortType.getType(), HttpMethod.GET, entity, Guests.class );
 				switch( responseEntity.getStatusCode() ) {
 					case OK :
@@ -506,11 +527,22 @@ public class GuestsDashboardFragment extends ListFragment {
 		protected void onPostExecute( Guests result ) {
 			Log.v( TAG, "DownloadGuestsTask.onPostExecute : enter" );
 
+			if( notify ) {
+				mNotificationHelper.completed();
+			}
+			
+			notify = false;
+			
 			if( null != result ) {
 				Log.v( TAG, "DownloadGuestsTask.onPostExecute : updating guests" );
 				
 		        try {
-		            File root = getActivity().getExternalCacheDir();
+		            File root;
+		            if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
+		            	root = getActivity().getExternalCacheDir();
+		            } else {
+		            	root = Environment.getExternalStorageDirectory();
+		            }
 		            
 		            File dataDir = new File( root, DATA_DIR );
 		            dataDir.mkdirs();
@@ -591,7 +623,12 @@ public class GuestsDashboardFragment extends ListFragment {
 				Log.v( TAG, "DownloadGuestImageTask.onPostExecute : result size=" + result.getHeight() + "x" + result.getWidth() );
 
 		        try {
-		            File root = getActivity().getExternalCacheDir();
+		            File root;
+		            if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
+		            	root = getActivity().getExternalCacheDir();
+		            } else {
+		            	root = Environment.getExternalStorageDirectory();
+		            }
 		            
 		            File pictureDir = new File( root, GUESTS_DIR );
 		            pictureDir.mkdirs();

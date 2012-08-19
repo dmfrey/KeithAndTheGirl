@@ -20,19 +20,12 @@
 -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content">
     
-    <ImageView
-        android:id="@+id/entry_play"
-        android:contentDescription="@string/play_label"
-        android:layout_width="wrap_content"
-        android:layout_height="fill_parent"
-        android:layout_marginRight="6dip"/>
-        
     <LinearLayout
         android:orientation="vertical"
-        android:paddingLeft="10dp"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content">
         
@@ -63,6 +56,37 @@
             android:ellipsize="marquee"
             android:textColor="@color/body_text_1"
         />
+        
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    		android:orientation="horizontal"
+    		android:layout_width="fill_parent"
+    		android:layout_height="wrap_content"
+    		android:gravity="right"
+    		android:background="@color/actionbar_text">
+        
+    		<ImageView
+        		android:id="@+id/entry_play"
+        		android:contentDescription="@string/entry_play"
+        		android:scaleType="center"
+        		android:layout_width="42dp"
+        		android:layout_height="32dp"
+        		android:paddingLeft="5sp"
+        		android:paddingRight="5sp"
+        		android:adjustViewBounds="true"
+        		android:src="@android:drawable/ic_media_play" />
+        
+            <ImageView
+        		android:id="@+id/entry_download"
+        		android:contentDescription="@string/entry_download"
+        		android:scaleType="center"
+        		android:layout_width="42dp"
+        		android:layout_height="32dp"
+        		android:paddingLeft="5sp"
+        		android:paddingRight="5sp"
+        		android:adjustViewBounds="true"
+        		android:src="@android:drawable/stat_sys_download" />
+        
+    	</LinearLayout>
         
     </LinearLayout>
     

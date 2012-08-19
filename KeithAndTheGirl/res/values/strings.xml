@@ -65,4 +65,7 @@
     <string name="guest_twitter">Twitter</string>
     <string name="guest_www">Website</string>
     
+    <string name="entry_download">Download Episode</string>
+	<string name="entry_play">Play Episode</string>
+	    
 </resources>
