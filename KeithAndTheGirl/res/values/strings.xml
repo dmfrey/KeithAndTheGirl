@@ -67,5 +67,6 @@
     
     <string name="entry_download">Download Episode</string>
 	<string name="entry_play">Play Episode</string>
-	    
+	<string name="entry_delete">Delete Episode</string>
+		    
 </resources>

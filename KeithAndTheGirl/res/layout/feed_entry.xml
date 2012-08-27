@@ -84,9 +84,21 @@
         		android:paddingLeft="5sp"
         		android:paddingRight="5sp"
         		android:adjustViewBounds="true"
-        		android:src="@android:drawable/stat_sys_download" />
+        		android:src="@android:drawable/stat_sys_download_done" />
         
-    	</LinearLayout>
+            <ImageView
+        		android:id="@+id/entry_delete"
+        		android:contentDescription="@string/entry_delete"
+        		android:scaleType="center"
+        		android:layout_width="42dp"
+        		android:layout_height="32dp"
+        		android:paddingLeft="5sp"
+        		android:paddingRight="5sp"
+        		android:adjustViewBounds="true"
+        		android:src="@android:drawable/ic_menu_delete"
+        		android:visibility="gone" />
+       
+		</LinearLayout>
         
     </LinearLayout>
     

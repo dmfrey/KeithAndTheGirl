@@ -38,9 +38,16 @@
 		<activity 
 			android:name=".ui.activity.EpisodesActivity" />
 		
+		<service android:enabled="true" android:name=".services.episode.EpisodeService" />
 		<service android:enabled="true" android:name=".services.MediaPlayerService" />
 		<service android:enabled="true" android:name=".services.UpdateFeedService" />
 		<service android:enabled="true" android:name=".services.UpdateCalendarService" />
+		
+		<!-- KATG Providers -->
+		<provider
+            android:name=".provider.KatgProvider"
+            android:authorities="com.keithandthegirl.provider.KatgProvider"
+            android:exported="false" />
 				
 	</application>
 

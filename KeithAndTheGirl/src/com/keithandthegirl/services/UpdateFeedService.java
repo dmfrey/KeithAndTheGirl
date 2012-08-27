@@ -30,6 +30,8 @@ import android.util.Log;
 
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndFeed;
 import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.FeedFetcher;
+import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.FeedFetcherCache;
+import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.HashMapFeedInfoCache;
 import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.HttpURLFeedFetcher;
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.utils.NotificationHelper;
@@ -79,7 +81,7 @@ public class UpdateFeedService extends Service {
 		
 		applicationContext = (MainApplication) getApplicationContext();
 		
-		new DownloadFeedTask().execute( MainApplication.KATG_RSS_FEED );
+		new DownloadFeedTask().execute();
 		
 		Log.d( TAG, "onStart : exit" );
 	}
@@ -106,7 +108,7 @@ public class UpdateFeedService extends Service {
 
 	};
     
-	private class DownloadFeedTask extends AsyncTask<String, Void, SyndFeed> {
+	private class DownloadFeedTask extends AsyncTask<Void, Void, SyndFeed> {
 		
 		@Override
 		protected void onPreExecute() {
@@ -116,16 +118,17 @@ public class UpdateFeedService extends Service {
 		}
 		
 		@Override
-		protected SyndFeed doInBackground( String... params ) {
+		protected SyndFeed doInBackground( Void... params ) {
 			Log.v( TAG, "doInBackground : enter" );
 
 			try {
                 mNotificationHelper.createNotification( "KeithAndTheGirl", "Refreshing KATG RSS Feed", NotificationType.SYNC );
 
-                FeedFetcher feedFetcher = new HttpURLFeedFetcher();
+                FeedFetcherCache feedInfoCache = HashMapFeedInfoCache.getInstance();
+                FeedFetcher feedFetcher = new HttpURLFeedFetcher( feedInfoCache );
 				
 				Log.v( TAG, "doInBackground : exit" );
-				return feedFetcher.retrieveFeed( new URL( params[ 0 ] ) );
+				return feedFetcher.retrieveFeed( new URL( MainApplication.KATG_RSS_FEED ) );
 			} catch( Exception e ) {
 				Log.e( TAG, e.getLocalizedMessage(), e );
 			}
