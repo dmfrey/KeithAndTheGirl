@@ -85,6 +85,8 @@ public class GuestsDashboardFragment extends ListFragment {
 
 	private final static String TAG = GuestsDashboardFragment.class.getSimpleName();
 	
+	private static final String DATA_DIR = "Data";
+
 	private static final int REFRESH_ID = Menu.FIRST + 10;
 	private static final int MOST_RECENT_ID = Menu.FIRST + 11;
 	private static final int TOP_COUNT_ID = Menu.FIRST + 12;
@@ -154,8 +156,32 @@ public class GuestsDashboardFragment extends ListFragment {
 		if( guestList.isEmpty() ) {
 			Log.v( TAG, "onResume : guestList is empty" );
 
-			mainApplication.setGuestSort( MainApplication.Sort.MOST_RECENT );
-			new DownloadGuestTask().execute( MainApplication.Sort.MOST_RECENT );
+            File root;
+            if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
+            	root = getActivity().getExternalCacheDir();
+            } else {
+            	root = Environment.getExternalStorageDirectory();
+            }
+            
+            File dataDir = new File( root, DATA_DIR );
+            dataDir.mkdirs();
+            
+            File f = new File( dataDir, "Guests.xml" );
+            if( f.exists() ) {
+
+            	Serializer serializer = new Persister();
+            	
+            	try {
+					Guests guests = serializer.read( Guests.class, f );
+					setDownloadedGuests( guests );
+				} catch( Exception e ) {
+					Log.w( TAG, "onResume : error reading guests file" );
+				}
+            } else {
+    			mainApplication.setGuestSort( MainApplication.Sort.MOST_RECENT );
+    			new DownloadGuestTask().execute( MainApplication.Sort.MOST_RECENT );
+            }
+
 		} else {
 			setupAdapter();
 		}
@@ -514,8 +540,6 @@ public class GuestsDashboardFragment extends ListFragment {
 	}
 	
 	private class DownloadGuestTask extends AsyncTask<MainApplication.Sort, Void, Guests> {
-
-		public static final String DATA_DIR = "Data";
 
 		@Override
 		protected Guests doInBackground( MainApplication.Sort... params ) {
