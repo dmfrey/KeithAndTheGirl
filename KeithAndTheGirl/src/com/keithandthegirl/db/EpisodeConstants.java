@@ -38,11 +38,11 @@ public class EpisodeConstants implements BaseColumns {
 	public static final String FIELD_ID_DATA_TYPE = "INTEGER";
 	public static final String FIELD_ID_PRIMARY_KEY = "PRIMARY KEY AUTOINCREMENT";
 	
+	public static final String FIELD_SHOW = "SHOW";
+	public static final String FIELD_SHOW_DATA_TYPE = "TEXT";
+
 	public static final String FIELD_PUBLISH_DATE = "PUBLISH";
 	public static final String FIELD_PUBLISH_DATE_DATA_TYPE = "INTEGER";
-
-	public static final String FIELD_NUMBER = "NUMBER";
-	public static final String FIELD_NUMBER_DATA_TYPE = "INTEGER";
 
 	public static final String FIELD_TITLE = "TITLE";
 	public static final String FIELD_TITLE_DATA_TYPE = "TEXT";

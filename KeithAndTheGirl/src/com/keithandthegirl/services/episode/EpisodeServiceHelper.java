@@ -85,7 +85,7 @@ public class EpisodeServiceHelper {
 		long requestId = generateRequestID();
 		pendingRequests.put( EPISODES_HASHKEY, requestId );
 		
-		ResultReceiver serviceCallback = new ResultReceiver(null){
+		ResultReceiver serviceCallback = new ResultReceiver( null ) {
 
 			@Override
 			protected void onReceiveResult( int resultCode, Bundle resultData ) {

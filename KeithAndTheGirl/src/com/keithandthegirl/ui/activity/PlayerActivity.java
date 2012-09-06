@@ -3,22 +3,13 @@
  */
 package com.keithandthegirl.ui.activity;
 
-import java.net.URLEncoder;
-
-import org.springframework.social.support.ClientHttpRequestFactorySelector;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
-
 import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
@@ -31,11 +22,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.keithandthegirl.MainApplication;
+import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
 import com.keithandthegirl.services.MediaPlayerService;
 
@@ -46,19 +36,13 @@ import com.keithandthegirl.services.MediaPlayerService;
 public class PlayerActivity extends FragmentActivity implements OnClickListener {
 
 	private static final String TAG = PlayerActivity.class.getSimpleName();
-	private static final int CALL_ID = Menu.FIRST + 1;
-	private static final int ABOUT_ID = Menu.FIRST + 2;
+	private static final int FEEDBACK_ID = Menu.FIRST + 1;
+	private static final int CALL_ID = Menu.FIRST + 2;
+	private static final int ABOUT_ID = Menu.FIRST + 3;
 
-	private static final String FEEDBACK_URL = "http://www.attackwork.com/Voxback/Comment-Form-Iframe.aspx";
-	private static final String FEEDBACK_URL_ENCODER = "UTF-8";
-	
-	private static final String NAME_KEY = "NAME";
-	private static final String LOCATION_KEY = "LOCATION";
-	
 	private Intent mediaPlayerReceiverIntent;
 	private TextView nowPlayingTitle;
-	private EditText editName, editLocation, editComment;
-	private Button stopButton, submitButton;
+	private Button stopButton;
 	
 	//***************************************
     // Activity methods
@@ -77,18 +61,15 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 
 	    setupActionBar();
 	    
-	    mediaPlayerReceiverIntent = new Intent( this, MediaPlayerService.class );
-
-	    nowPlayingTitle = (TextView) findViewById( R.id.now_playing_title );
+	    Bundle extras = getIntent().getExtras();
 	    
-	    editName = (EditText) findViewById( R.id.player_feedback_name );
-	    editLocation = (EditText) findViewById( R.id.player_feedback_location );
-	    editComment = (EditText) findViewById( R.id.player_feedback_comment );
+	    mediaPlayerReceiverIntent = new Intent( this, MediaPlayerService.class );
+	    mediaPlayerReceiverIntent.putExtras( extras );
+	    
+	    nowPlayingTitle = (TextView) findViewById( R.id.now_playing_title );
 	    
 	    stopButton = (Button) findViewById( R.id.player_stop );
 	    stopButton.setOnClickListener( this );
-	    submitButton = (Button) findViewById( R.id.player_submit );
-	    submitButton.setOnClickListener( this );
 	    
 	    play();
 	    
@@ -120,58 +101,23 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 
 		registerReceiver( mediaPlayerBroadcastReceiver, new IntentFilter( MediaPlayerService.BROADCAST_ACTION ) );
 
-		switch( ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
+	    Bundle extras = getIntent().getExtras();
+
+	    PlayType currentPlayType = PlayType.valueOf( extras.getString( "PLAY_TYPE" ) );
+	    
+		switch( currentPlayType ) {
 			case RECORDED :
 				
-				if( null != ( (MainApplication) getApplicationContext() ).getSelectedEntry() ) {
-					nowPlayingTitle.setText( ( (MainApplication) getApplicationContext() ).getSelectedEntry().getTitle() );
-				}
-
-				editName.setEnabled( false );
-				editName.setVisibility( View.GONE );
-				editLocation.setEnabled( false );
-				editLocation.setVisibility( View.GONE );
-				editComment.setEnabled( false );
-				editComment.setVisibility( View.GONE );
-				submitButton.setEnabled( false );
-				submitButton.setVisibility( View.GONE );
-
+				nowPlayingTitle.setText( extras.getString( "TITLE" ) );
+				
 				break;
 			case LIVE :
 				
 				nowPlayingTitle.setText( "Streaming Live!!" );
 				
-				editName.setEnabled( true );
-				editName.setVisibility( View.VISIBLE );
-				editLocation.setEnabled( true );
-				editLocation.setVisibility( View.VISIBLE );
-				editComment.setEnabled( true );
-				editComment.setVisibility( View.VISIBLE );
-				submitButton.setEnabled( true );
-				submitButton.setVisibility( View.VISIBLE );
-
-				SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
-				String name = sharedPreferences.getString( NAME_KEY, "" );
-				String location = sharedPreferences.getString( LOCATION_KEY, "" );
-				
-				editName.setText( name );
-				editLocation.setText( location );
-
 				break;
 		}
 		
-		editName.setEnabled( true );
-		editLocation.setEnabled( true );
-		editComment.setEnabled( true );
-		submitButton.setEnabled( true );
-
-		SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
-		String name = sharedPreferences.getString( NAME_KEY, "" );
-		String location = sharedPreferences.getString( LOCATION_KEY, "" );
-		
-		editName.setText( name );
-		editLocation.setText( location );
-
 		Log.d( TAG, "onResume : exit" );
 	}
 
@@ -183,21 +129,28 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 	public boolean onCreateOptionsMenu( Menu menu ) {
 		Log.d( TAG, "onCreateOptionsMenu : enter" );
 
-		//if( null != ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
-			switch( ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
-				case LIVE :
+	    Bundle extras = getIntent().getExtras();
+
+	    PlayType currentPlayType = PlayType.valueOf( extras.getString( "PLAY_TYPE" ) );
+		switch( currentPlayType ) {
+			case LIVE :
 	
-			    	MenuItem call = menu.add( Menu.NONE, CALL_ID, Menu.NONE, "Call" );
-			    	call.setIcon( android.R.drawable.ic_menu_call );
-			    	if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
-			    		call.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
-			    	}
+		    	MenuItem feedback = menu.add( Menu.NONE, FEEDBACK_ID, Menu.NONE, "Send Feedback" );
+		    	feedback.setIcon( android.R.drawable.ic_menu_send );
+		    	if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+		    		feedback.setShowAsAction( MenuItem.SHOW_AS_ACTION_ALWAYS );
+		    	}
+
+		    	MenuItem call = menu.add( Menu.NONE, CALL_ID, Menu.NONE, "Call" );
+		    	call.setIcon( android.R.drawable.ic_menu_call );
+		    	if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+		    		call.setShowAsAction( MenuItem.SHOW_AS_ACTION_IF_ROOM );
+		    	}
             
-					break;
-				default:
-					break;
-			}
-		//}
+				break;
+			default:
+				break;
+		}
 		
 	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, getResources().getString( R.string.about_header ) );
 	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
@@ -214,11 +167,16 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 
 	    Intent intent = new Intent();
 	    
-	    // Handle item selection
+		FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+
+		// Handle item selection
 	    switch( item.getItemId() ) {
 	    	case android.R.id.home:
 
-	    		switch( ( (MainApplication) getApplicationContext() ).getSelectedPlayType() ) {
+	    	    Bundle extras = getIntent().getExtras();
+
+	    	    PlayType currentPlayType = PlayType.valueOf( extras.getString( "PLAY_TYPE" ) );
+	    		switch( currentPlayType ) {
 	    			case RECORDED :
 				
 	    	            intent = new Intent( this, EpisodesActivity.class );
@@ -234,6 +192,19 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				
 	    	            return true;
 	    		}
+			case FEEDBACK_ID:
+				Log.d( TAG, "onOptionsItemSelected : about selected" );
+
+				Fragment feedback = getSupportFragmentManager().findFragmentByTag( "feedbackDialog" );
+				if( null != feedback ) {
+					ft.remove( feedback );
+				}
+				ft.addToBackStack( null );
+
+				DialogFragment feedbackFragment = FeedbackDialogFragment.newInstance();
+				feedbackFragment.show( ft, "feedbackDialog" );
+		    
+				return true;
 	    	case CALL_ID :
 				Log.d( TAG, "onOptionsItemSelected : call selected" );
 
@@ -245,15 +216,14 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 			case ABOUT_ID:
 				Log.d( TAG, "onOptionsItemSelected : about selected" );
 
-				FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-				Fragment prev = getSupportFragmentManager().findFragmentByTag( "aboutDialog" );
-				if( null != prev ) {
-					ft.remove( prev );
+				Fragment about = getSupportFragmentManager().findFragmentByTag( "aboutDialog" );
+				if( null != about ) {
+					ft.remove( about );
 				}
 				ft.addToBackStack( null );
 
-				DialogFragment newFragment = AboutDialogFragment.newInstance();
-				newFragment.show( ft, "aboutDialog" );
+				DialogFragment aboutFragment = AboutDialogFragment.newInstance();
+				aboutFragment.show( ft, "aboutDialog" );
 		    
 				return true;
 	    }
@@ -274,48 +244,7 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 				Log.v( TAG, "onClick : stop button pressed" );
 			
 				stopService( new Intent( this, MediaPlayerService.class ) );
-				clearNowPlaying();
 				finish();
-				
-				break;
-			case R.id.player_submit :
-				Log.v( TAG, "onClick : submit button pressed" );
-				
-				String name = editName.getText().toString();
-				if( null != name && !"".equals( name ) ) {
-					name = name.trim();
-
-    				if( name.length() > 50 ) {
-    					name = name.substring( 0, 50 );
-    				}
-				}
-				
-				String location = editLocation.getText().toString();
-				if( null != location && !"".equals( location ) ) {
-					location = location.trim();
-				
-    				if( location.length() > 50 ) {
-    					location = location.substring( 0, 50 );
-    				}
-				}
-
-				String comment = editComment.getText().toString();
-				if( null != comment && !"".equals( comment ) ) {
-					comment = comment.trim();
-					
-    				if( comment.length() > 512 ) {
-    					comment = comment.substring( 0, 512 );
-    				}
-				}
-				
-				savePreferences( NAME_KEY, name );
-				savePreferences( LOCATION_KEY, location );
-				
-				if( null != comment && !"".equals( comment ) ) {
-					new PostCommentTask().execute( name, location, comment );
-				}
-				
-				editComment.setText( "" );
 				
 				break;
 		}
@@ -347,96 +276,15 @@ public class PlayerActivity extends FragmentActivity implements OnClickListener 
 		Log.d( TAG, "play : exit" );
 	}
 	
-	private void clearNowPlaying() {
-		Log.d( TAG, "clearNowPlaying : enter" );
-
-		( (MainApplication) getApplicationContext() ).setSelectedEntry( null );
-		//( (MainApplication) getApplicationContext() ).setSelectedPlayType( null );
-		
-		Log.d( TAG, "clearNowPlaying : exit" );
-	}
-
     private BroadcastReceiver mediaPlayerBroadcastReceiver = new BroadcastReceiver() {
     	
         @Override
         public void onReceive( Context context, Intent intent ) {
     		Log.d( TAG, "onReceive : enter" );
 
-    		clearNowPlaying();
-    		
     		Log.d( TAG, "onReceive : exit" );
         }
         
     };
 
-    private void savePreferences( String key, String value ) {
-    	SharedPreferences sharedPreferences = getPreferences( MODE_PRIVATE );
-    	SharedPreferences.Editor editor = sharedPreferences.edit();
-    	editor.putString( key, value );
-    	editor.commit();
-    }
-    
-    private class PostCommentTask extends AsyncTask<String, Void, String> {
-    	
-    	private Exception exception;
-    	
-    	@Override
-    	protected String doInBackground( String... params ) {
-    		
-    		try {
-    			RestTemplate template = new RestTemplate( true, ClientHttpRequestFactorySelector.getRequestFactory() );
-
-    			String name = params[ 0 ];
-    			String location = params[ 1 ];
-    			String comment = params[ 2 ];
-    			
-    			String encodedName = ( null != name && !"".equals( name ) ) ? URLEncoder.encode( name, FEEDBACK_URL_ENCODER ) : "";
-    			String encodedLocation = ( null != location && !"".equals( location ) ) ? URLEncoder.encode( location, FEEDBACK_URL_ENCODER ) : "";
-    			String encodedComment = ( null != comment && !"".equals( comment ) ) ? URLEncoder.encode( comment, FEEDBACK_URL_ENCODER ) : "";
-
-    			MultiValueMap<String, String> map = new LinkedMultiValueMap<String, String>();
-    			map.add( "Name", encodedName );
-    			map.add( "Location", encodedLocation );
-    			map.add( "Comment", encodedComment );
-    			map.add( "ButtonSubmit", "Send+Comment" );
-    			map.add( "HiddenVoxbackId", "3" );
-    			map.add( "HiddenMixerCode", "IEOSE" );
-
-    			return template.postForObject( FEEDBACK_URL, map, String.class );
-    		} catch( Exception e ) {
-    			exception = e;
-    		}
-    		
-    		return null;
-    	}
-
-		/* (non-Javadoc)
-		 * @see android.os.AsyncTask#onPostExecute(java.lang.Object)
-		 */
-		@Override
-		protected void onPostExecute( String result ) {
-			
-			if( null == exception ) {
-				Log.i( TAG, "result=" + result );
-				
-				if( null != result && result.indexOf( "Message Sent" ) != -1 ) {
-	
-					toastComment( "Comment sent successfully!" );
-				} else {
-					toastComment( "Comment failed!" );
-				}
-				
-			} else {
-				toastComment( "Comment failed!" );
-			}
-			
-		}
-        
-    }
-
-    private void toastComment( String message ) {
-    	Toast toast = Toast.makeText( this, message, Toast.LENGTH_SHORT );
-    	toast.show();
-    }
-    
 }

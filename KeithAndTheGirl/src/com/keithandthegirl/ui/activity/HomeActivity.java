@@ -24,6 +24,7 @@ import java.util.List;
 
 import android.annotation.TargetApi;
 import android.app.ActionBar;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
@@ -39,6 +40,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import com.keithandthegirl.R;
+import com.keithandthegirl.ui.preferences.SettingsActivity;
+import com.keithandthegirl.ui.preferences.SettingsActivityHC;
 
 /**
  * @author Daniel Frey
@@ -47,7 +50,8 @@ import com.keithandthegirl.R;
 public class HomeActivity extends FragmentActivity {
 
 	private static final String TAG = HomeActivity.class.getSimpleName();
-	private static final int ABOUT_ID = Menu.FIRST + 1;
+	private static final int SETTINGS_ID = Menu.FIRST + 1;
+	private static final int ABOUT_ID = Menu.FIRST + 2;
 
 	private Resources resources;
 	
@@ -69,8 +73,7 @@ public class HomeActivity extends FragmentActivity {
 		List<Fragment> fragments = new ArrayList<Fragment>();
 		fragments.add( Fragment.instantiate( this, GuestsDashboardFragment.class.getName() ) );
 		fragments.add( Fragment.instantiate( this, ListenDashboardFragment.class.getName() ) );
-		fragments.add( Fragment.instantiate( this, SocialDashboardFragment.class.getName() ) );
-		fragments.add( Fragment.instantiate( this, WebDashboardFragment.class.getName() ) );
+		fragments.add( Fragment.instantiate( this, HostDashboardFragment.class.getName() ) );
 
 		KatgPagerAdapter mAdapter = new KatgPagerAdapter( getSupportFragmentManager(), fragments );
 		ViewPager mPager = (ViewPager) findViewById( R.id.home_pager );
@@ -87,6 +90,11 @@ public class HomeActivity extends FragmentActivity {
 	@Override
 	public boolean onCreateOptionsMenu( Menu menu ) {
 		Log.d( TAG, "onCreateOptionsMenu : enter" );
+
+	    MenuItem settings = menu.add( Menu.NONE, SETTINGS_ID, Menu.NONE, getResources().getString( R.string.pref_settings_title ) );
+	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+	    	settings.setShowAsAction( MenuItem.SHOW_AS_ACTION_NEVER );
+	    }
 
 	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, getResources().getString( R.string.about_header ) );
 	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
@@ -105,6 +113,16 @@ public class HomeActivity extends FragmentActivity {
 		Log.d( TAG, "onOptionsItemSelected : enter" );
 
 		switch( item.getItemId() ) {
+		case SETTINGS_ID:
+			Log.d( TAG, "onOptionsItemSelected : settings selected" );
+
+		    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+		    	startActivity( new Intent( this, SettingsActivityHC.class ) );
+		    } else {
+		    	startActivity( new Intent( this, SettingsActivity.class ) );
+		    }
+		    
+			return true;
 		case ABOUT_ID:
 			Log.d( TAG, "onOptionsItemSelected : about selected" );
 
@@ -170,9 +188,7 @@ public class HomeActivity extends FragmentActivity {
 			case 1:
 				return resources.getString( R.string.tab_listen );
 			case 2:
-				return resources.getString( R.string.tab_social );
-			case 3:
-				return resources.getString( R.string.tab_web );
+				return resources.getString( R.string.tab_hosts );
 			}
 
 			return super.getPageTitle( position );

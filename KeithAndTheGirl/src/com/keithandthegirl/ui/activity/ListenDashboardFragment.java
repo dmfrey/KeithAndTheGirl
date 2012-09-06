@@ -70,8 +70,10 @@ public class ListenDashboardFragment extends Fragment {
 			public void onClick( View view ) {
 				Log.v( TAG, "live.onClick : enter" );
 
-				( (MainApplication) getActivity().getApplicationContext() ).setSelectedPlayType( PlayType.LIVE );
-				startActivity( new Intent( getActivity(), PlayerActivity.class ) );
+				Intent intent = new Intent( getActivity(), PlayerActivity.class );
+				intent.putExtra( "PLAY_TYPE", PlayType.LIVE.name() );
+				
+				startActivity( intent );
 				
 				Log.v( TAG, "live.onClick : exit" );
 			}

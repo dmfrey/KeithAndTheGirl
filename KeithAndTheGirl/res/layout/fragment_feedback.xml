@@ -18,76 +18,14 @@
  * This software can be found at <https://github.com/dmfrey/KeithAndTheGirl/>
  *
 -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/scrollView1"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content" >
 
-<LinearLayout
-    android:layout_width="fill_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical" >
-
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+    android:orientation="vertical"
+	android:padding="10dip">
+	
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="4dp" >
-    	
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="30"
-            android:text="@string/now_playing_label"
-            android:textSize="@dimen/text_size_big"
-            android:textStyle="bold" />
-        
-    </LinearLayout>
-    
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="4dp" >
-    	
-        <TextView
-            android:id="@+id/now_playing_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="70"
-            android:text=""
-            android:textSize="@dimen/text_size_big" />
-        
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp" >
-    	
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:layout_weight="100"
-            android:text="@string/player_controls_label"
-            android:textSize="@dimen/text_size_big"
-            android:textStyle="bold" />
-        
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="10dp" >
-    	
-        <Button
-            android:id="@+id/player_stop"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/stop_label" />
-        
-    </LinearLayout>
-
-    <!-- LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="5dp"
@@ -127,7 +65,7 @@
         android:layout_marginRight="5dp" >
     	
     	<EditText
-    	    android:id="@+id/player_feedback_name"
+    	    android:id="@+id/feedback_name"
     	    android:layout_width="0dp"
     	    android:layout_height="wrap_content"
     	    android:layout_weight="144.20"
@@ -162,7 +100,7 @@
         android:layout_marginRight="5dp" >
     	
     	<EditText
-    	    android:id="@+id/player_feedback_location"
+    	    android:id="@+id/feedback_location"
     	    android:layout_width="0dp"
     	    android:layout_height="wrap_content"
     	    android:layout_weight="100"
@@ -197,7 +135,7 @@
         android:layout_marginRight="5dp" >
     	
     	<EditText
-    	    android:id="@+id/player_feedback_comment"
+    	    android:id="@+id/feedback_comment"
     	    android:layout_width="0dp"
     	    android:layout_height="wrap_content"
     	    android:layout_weight="100"
@@ -208,22 +146,4 @@
     
     </LinearLayout>
     	
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="5dp" >
-    	
-    	<Button
-            android:id="@+id/player_submit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/player_feedback_comment_label" />
-        
-    </LinearLayout -->
-
 </LinearLayout>
-
-</ScrollView>
-

@@ -19,29 +19,18 @@
  *
 -->
 
-<merge xmlns:android="http://schemas.android.com/apk/res/android">
-	
-	<ScrollView
-		style="@style/ScrollView">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-			<LinearLayout
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-			    android:orientation="vertical"
-	    		android:padding="10dip">
-	
-				<TextView 
-					style="@style/HeadingText" 
-					android:id="@+id/about_header_text_view"
-					android:text="@string/about_header" />
+    <PreferenceCategory 
+        android:title="@string/pref_vip_title"
+        android:key="pref_vip_storage_settings"
+        android:summary="@string/pref_vip_description">
 
-				<TextView 
-			    	style="@style/Text"
-			    	android:id="@+id/about_description_text_view"
-			    	android:text="@string/about_description_1" />
-				
-			</LinearLayout>
-			    		
-	</ScrollView>
-	
-</merge>
+		<EditTextPreference 
+			android:title="@string/pref_vip_title"
+            android:key="pref_vip" 
+            android:summary="@string/pref_vip_description" />
+            
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -23,8 +23,6 @@ import java.text.SimpleDateFormat;
 
 import android.app.Application;
 
-import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEntry;
-import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndFeed;
 import com.keithandthegirl.api.google.Feed;
 import com.keithandthegirl.api.guests.Guests;
 
@@ -38,6 +36,8 @@ public class MainApplication extends Application {
 	public static final String KATG_WEB_SITE = "http://www.keithandthegirl.com";
 	public static final String KATG_LIVE_STREAM = "http://liveshow.keithandthegirl.com:8004/";
 	public static final String KATG_RSS_FEED = "http://www.keithandthegirl.com/rss/";
+	public static final String KATG_RSS_FEED_VIP = "http://www.keithandthegirl.com/vip/rss/";
+	public static final String KATG_RSS_FEED_VIP_KEY = "pref_vip";
 	public static final String KATG_PHONE_NUMBER = "6465028682";
 	public static final String KATG_GUEST_URL = "http://www.keithandthegirl.com/Api/App/guest/list-all/";
 	
@@ -61,12 +61,6 @@ public class MainApplication extends Application {
 	}
 	
 	private SimpleDateFormat format = new SimpleDateFormat( "yyyy-MM-dd" );
-	
-	private SyndFeed feed;
-	
-	private SyndEntry selectedEntry;
-	
-	private PlayType selectedPlayType;
 	
 	private Feed calendarFeed;
 	
@@ -102,53 +96,6 @@ public class MainApplication extends Application {
 		return format;
 	}
 	
-	/**
-	 * @return the feed
-	 */
-	public SyndFeed getFeed() {
-		return feed;
-	}
-
-	/**
-	 * @param feed the feed to set
-	 */
-	public void setFeed( SyndFeed feed ) {
-		this.feed = feed;
-	}
-
-
-	/**
-	 * @return the selectedEntry
-	 */
-	public SyndEntry getSelectedEntry() {
-		return selectedEntry;
-	}
-
-
-	/**
-	 * @param selectedEntry the selectedEntry to set
-	 */
-	public void setSelectedEntry( SyndEntry selectedEntry ) {
-		this.selectedEntry = selectedEntry;
-	}
-
-
-	/**
-	 * @return the selectedPlayType
-	 */
-	public PlayType getSelectedPlayType() {
-		return selectedPlayType;
-	}
-
-
-	/**
-	 * @param selectedPlayType the selectedPlayType to set
-	 */
-	public void setSelectedPlayType( PlayType selectedPlayType ) {
-		this.selectedPlayType = selectedPlayType;
-	}
-
-
 	/**
 	 * @return the feed
 	 */

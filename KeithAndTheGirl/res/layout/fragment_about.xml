@@ -25,9 +25,21 @@
     android:orientation="vertical"
 	android:padding="10dip">
 	
-	<TextView 
+    <TextView 
     	style="@style/Text"
     	android:id="@+id/about_description_text_view"
-    	android:text="@string/about_description" />
+    	android:text="@string/about_description_1" />
 				
+    <TextView 
+    	style="@style/Text"
+    	android:text="@string/about_description_2" />
+				
+    <TextView 
+    	style="@style/Text"
+    	android:text="@string/about_description_3" />
+				
+    <TextView 
+    	style="@style/Text"
+    	android:text="@string/about_description_4" />
+    	
 </LinearLayout>

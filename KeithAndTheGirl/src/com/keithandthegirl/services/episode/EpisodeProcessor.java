@@ -19,14 +19,20 @@
  */
 package com.keithandthegirl.services.episode;
 
+import java.io.File;
 import java.net.URL;
 import java.util.List;
 
+import android.annotation.TargetApi;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEnclosure;
@@ -39,6 +45,7 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.db.EpisodeConstants;
 import com.keithandthegirl.services.AbstractKatgProcessor;
+import com.keithandthegirl.services.download.DownloadService.FileType;
 import com.keithandthegirl.utils.NotificationHelper;
 import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
@@ -73,14 +80,27 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 		try {
             mNotificationHelper.createNotification( "KeithAndTheGirl", "Refreshing KATG RSS Feed", NotificationType.SYNC );
 
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( mContext );
+            String vip = sharedPref.getString( MainApplication.KATG_RSS_FEED_VIP_KEY, "" );
+            boolean isVip = ( null != vip && !"".equals( vip ) ? true : false );
+            Log.v( TAG, "getEpisodes : isVip=" + isVip );
+            
             // if not VIP, then reset all episodes where VIP is 0 to 1;
-            resetVipEpisodes();
+            if( !isVip ) {
+            	resetVipEpisodes();
+            }
+            
+            String address = MainApplication.KATG_RSS_FEED;
+            if( isVip ) {
+            	address = MainApplication.KATG_RSS_FEED_VIP + "?a=" + vip;
+            }
+            Log.v( TAG, "getEpisodes : rss address=" + address );
             
             FeedFetcherCache feedInfoCache = HashMapFeedInfoCache.getInstance();
             FeedFetcher feedFetcher = new HttpURLFeedFetcher( feedInfoCache );
-			SyndFeed feed = feedFetcher.retrieveFeed( new URL( MainApplication.KATG_RSS_FEED ) );
+            SyndFeed feed = feedFetcher.retrieveFeed( new URL( address ) );
 			
-			processFeed( feed );
+			processFeed( feed, isVip );
 			
 			callback.send( 1 );
 			
@@ -94,58 +114,98 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 
 	// internal helpers
 	
+	@TargetApi( 8 )
 	@SuppressWarnings( "unchecked" )
-	private void processFeed( SyndFeed feed ) {
+	private void processFeed( SyndFeed feed, boolean isVip ) {
 		Log.v( TAG, "processFeed : enter" );
 
 		if( null != feed ) {
 
 			if( null != feed.getEntries() && !feed.getEntries().isEmpty() ) {
 				
+                File root;
+                if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
+                	root = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_PODCASTS );
+                } else {
+                	root = Environment.getExternalStorageDirectory();
+                }
+	            
+	            Log.v( TAG, "processFeed : feed entries downloaded=" + feed.getEntries().size() );
 				for( SyndEntry entry : (List<SyndEntry>) feed.getEntries() ) {
-				
-					if( !entry.getTitle().equalsIgnoreCase( "where are more katg shows" ) ) {
+					Log.v( TAG, "processFeed : feed entry iteration" );
+					
+					String title = entry.getTitle();
+
+					String show = generateShowName( title );
+					
+					String value = entry.getDescription().getValue();
+					value = value.replace( "<p>", "" );
+					value = value.replace( "</p>", "" );
+					value = value.replace( "\"", "" );
+		            
+					FileType fileType = null;
+					String filename = "", address = "", type = "";
+					long length = 0;
+					try {
+						SyndEnclosure enc = (SyndEnclosure) entry.getEnclosures().get( 0 );
 						
-						String[] title = entry.getTitle().split( ":" );
-						if( title.length == 2 ) { 
+						address = enc.getUrl();
+						type = enc.getType();
+						length = enc.getLength();
+						Log.d( TAG, "processFeed : enc=[ address=" + address + ", type=" + type + ", length=" + length + "]" );
 						
-							String value = entry.getDescription().getValue();
-							value = value.replace( "<p>", "" );
-							value = value.replace( "</p>", "" );
-							value = value.replace( "\"", "" );
-
-							ContentValues values = new ContentValues();
-							values.put( EpisodeConstants.FIELD_PUBLISH_DATE, entry.getPublishedDate().getTime() );
-							values.put( EpisodeConstants.FIELD_NUMBER, Integer.parseInt( title[ 0 ] ) );
-							values.put( EpisodeConstants.FIELD_TITLE, title[ 1 ].trim() );
-							values.put( EpisodeConstants.FIELD_DESCRIPTION, value );
-							values.put( EpisodeConstants.FIELD_URL, ( (SyndEnclosure) entry.getEnclosures().get( 0 ) ).getUrl()  );
-							values.put( EpisodeConstants.FIELD_TYPE, ( (SyndEnclosure) entry.getEnclosures().get( 0 ) ).getType() );
-							values.put( EpisodeConstants.FIELD_LENGTH, ( (SyndEnclosure) entry.getEnclosures().get( 0 ) ).getLength() );
-							values.put( EpisodeConstants.FIELD_VIP, 0 );
-
-							String[] projection = new String[] { EpisodeConstants._ID };
-
-							StringBuilder sb = new StringBuilder();
-							sb.append( EpisodeConstants.FIELD_NUMBER ).append( " = ?" );
-
-							String[] args = new String[] { title[ 0 ] };
-
-							long episodeId;
-							Cursor cursor = mContext.getContentResolver().query( EpisodeConstants.CONTENT_URI, projection, sb.toString(), args, null );
-							if( cursor.moveToFirst() ) {
-								episodeId = cursor.getLong( cursor.getColumnIndexOrThrow( EpisodeConstants._ID ) );
-								mContext.getContentResolver().update( ContentUris.withAppendedId( EpisodeConstants.CONTENT_URI, episodeId ), values, null, null );
-							} else {
-								Uri programUri = mContext.getContentResolver().insert( EpisodeConstants.CONTENT_URI, values );
-								episodeId = ContentUris.parseId( programUri );
-							}
-							cursor.close();
-						
+						String encFilename = address.substring( address.lastIndexOf( '/' ) + 1 );
+						if( isVip ) {
+							encFilename = encFilename.substring( 0, encFilename.indexOf( '?' ) );
+							fileType = FileType.findByExtension( encFilename.substring( encFilename.indexOf( "." ) + 1 ) );
 						}
 						
+			            File episodeDir = new File( root, show );
+			            episodeDir.mkdirs();
+
+						File f = new File( episodeDir, encFilename );
+						if( f.exists() ) {
+							filename = f.getAbsolutePath();
+
+							Log.d( TAG, "processFeed : filename=" + filename );
+						}
+					} catch( Exception e ) {
+						Log.w( TAG, "processFeed : episode '" + title + "' could not be processed", e );
 					}
-				
+					
+					ContentValues values = new ContentValues();
+					values.put( EpisodeConstants.FIELD_SHOW, show );
+					values.put( EpisodeConstants.FIELD_PUBLISH_DATE, entry.getPublishedDate().getTime() );
+					values.put( EpisodeConstants.FIELD_TITLE, title );
+					values.put( EpisodeConstants.FIELD_DESCRIPTION, value );
+					values.put( EpisodeConstants.FIELD_URL, address  );
+					values.put( EpisodeConstants.FIELD_TYPE, ( null != fileType ) ? fileType.getMimeType() : FileType.MP3.getMimeType() );
+					values.put( EpisodeConstants.FIELD_LENGTH, length );
+					values.put( EpisodeConstants.FIELD_FILE, filename );
+					values.put( EpisodeConstants.FIELD_VIP, ( isVip ? 1 : 0 ) );
+
+					String[] projection = new String[] { EpisodeConstants._ID };
+
+					StringBuilder sb = new StringBuilder();
+					sb.append( EpisodeConstants.FIELD_TITLE ).append( " = ?" );
+
+					String[] args = new String[] { title };
+
+					long episodeId;
+					Cursor cursor = mContext.getContentResolver().query( EpisodeConstants.CONTENT_URI, projection, sb.toString(), args, null );
+					if( cursor.moveToFirst() ) {
+						Log.v( TAG, "processFeed : feed entry iteration, updating existing entry" );
+						
+						episodeId = cursor.getLong( cursor.getColumnIndexOrThrow( EpisodeConstants._ID ) );
+						mContext.getContentResolver().update( ContentUris.withAppendedId( EpisodeConstants.CONTENT_URI, episodeId ), values, null, null );
+					} else {
+						Log.v( TAG, "processFeed : feed entry iteration, adding new entry" );
+
+						Uri programUri = mContext.getContentResolver().insert( EpisodeConstants.CONTENT_URI, values );
+						episodeId = ContentUris.parseId( programUri );
+					}
+					cursor.close();
+
 				}
 			
 			}
@@ -158,6 +218,33 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 	}
 
 	// internal helpers
+	
+	private String generateShowName( String title ) {
+		
+		String show = "KATG";
+		
+		if( title.startsWith( "WMN" ) ) {
+			show = "What's My Name";
+		}
+		
+		if( title.startsWith( "MNIK" ) ) {
+			show = "My Name Is Keith";
+		}
+
+		if( title.startsWith( "TTSWD" ) ) {
+			show = "That's the Show with Danny";
+		}
+		
+		if( title.startsWith( "INTERNment" ) ) {
+			show = "INTERNment";
+		}
+
+		if( title.startsWith( "KATGtv" ) ) {
+			show = "KATGtv";
+		}
+
+		return show;
+	}
 	
 	private int resetVipEpisodes() {
 		Log.v( TAG, "resetVipEpisodes : enter" );

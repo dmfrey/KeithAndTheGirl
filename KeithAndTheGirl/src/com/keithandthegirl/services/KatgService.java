@@ -35,11 +35,11 @@ public abstract class KatgService extends IntentService {
 
 	protected static final int REQUEST_INVALID = -1;
 
-	public static final String METHOD_EXTRA = "org.mythtv.service.METHOD_EXTRA";
-	public static final String RESOURCE_TYPE_EXTRA = "org.mythtv.service.RESOURCE_TYPE_EXTRA";
+	public static final String METHOD_EXTRA = "com.keithandthegirl.services.METHOD_EXTRA";
+	public static final String RESOURCE_TYPE_EXTRA = "com.keithandthegirl.services.RESOURCE_TYPE_EXTRA";
 
-	public static final String SERVICE_CALLBACK = "org.mythtv.service.SERVICE_CALLBACK";
-	public static final String ORIGINAL_INTENT_EXTRA = "org.mythtv.service.ORIGINAL_INTENT_EXTRA";
+	public static final String SERVICE_CALLBACK = "com.keithandthegirl.services.SERVICE_CALLBACK";
+	public static final String ORIGINAL_INTENT_EXTRA = "com.keithandthegirl.services.ORIGINAL_INTENT_EXTRA";
 	
 	public KatgService( String name ) {
 		super( name );

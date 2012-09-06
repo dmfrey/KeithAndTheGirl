@@ -19,7 +19,6 @@
  */
 package com.keithandthegirl.services;
 
-import java.io.File;
 import java.io.IOException;
 
 import android.annotation.TargetApi;
@@ -27,20 +26,20 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ContentUris;
 import android.content.Intent;
+import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
-import android.os.Build;
-import android.os.Environment;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEnclosure;
-import com.google.code.rome.android.repackaged.com.sun.syndication.feed.synd.SyndEntry;
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
+import com.keithandthegirl.db.EpisodeConstants;
 import com.keithandthegirl.ui.activity.PlayerActivity;
 
 /**
@@ -63,8 +62,6 @@ public class MediaPlayerService extends Service {
 	private NotificationManager nm;
 	private static final int NOTIFY_ID = 1;
 
-	private SyndEntry currentEntry;
-	
 	/* (non-Javadoc)
 	 * @see android.app.Service#onCreate()
 	 */
@@ -110,19 +107,21 @@ public class MediaPlayerService extends Service {
 		
 		handler.removeCallbacks( sendUpdatesToUI );
 
-		currentPlayType = applicationContext.getSelectedPlayType();
+		Bundle extras = intent.getExtras();
+		
+		currentPlayType = PlayType.valueOf( extras.getString( "PLAY_TYPE" ) );
 
 		applicationContext.setPlaying( true );
 		
 		switch( currentPlayType ) {
 			case LIVE:
 				playLive();
+				
 				break;
 			case RECORDED:
-				currentEntry = applicationContext.getSelectedEntry();
-				if( null != currentEntry ) {
-					playRecorded();
-				}
+				long id = extras.getLong( "EPISODE", -1 );
+				playRecorded( id );
+
 				break;
 			default:
 				break;
@@ -200,38 +199,30 @@ public class MediaPlayerService extends Service {
 	}
 
 	@TargetApi( 8 )
-	private void playRecorded() {
+	private void playRecorded( long id ) {
 		Log.d( TAG, "playRecorded : enter" );
 		
 		try {
-            File root;
-            if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
-            	root = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_PODCASTS );
-            } else {
-            	root = Environment.getExternalStorageDirectory();
-            }
-            
-            File episodeDir = new File( root, "KATG" );
-            episodeDir.mkdirs();
-            
-            String address = ( (SyndEnclosure) currentEntry.getEnclosures().get( 0 ) ).getUrl();
-            File f = new File( episodeDir, address.substring( address.lastIndexOf( '/' ) + 1 ) );
-            if( f.exists() ) {
-        		Log.d( TAG, "playRecorded : play local=" + f.getAbsolutePath() );
+			Cursor cursor = getContentResolver().query( ContentUris.withAppendedId( EpisodeConstants.CONTENT_URI, id), null, null, null, null );
+			if( cursor.moveToFirst() ) {
+		        final String title = cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_TITLE ) );
+		        final String description = cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_DESCRIPTION ) );
+		        final String url = cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_URL ) );
+		        final String file = null != cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_FILE ) ) ? cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_FILE ) ) : "";
 
-        		start( f.getAbsolutePath() );
-            } else {
-        		Log.d( TAG, "playRecorded : play stream" );
+				if( null != file && !"".equals( file ) ) {
+					Log.d( TAG, "playRecorded : play local=" + file );
 
-            	start( address );
-            }
+					start( file );
+				} else {
+					Log.d( TAG, "playRecorded : play stream" );
 
-			String value = currentEntry.getDescription().getValue();
-	        value = value.replace( "<p>", "" );
-	        value = value.replace( "</p>", "" );
-	        value = value.replace( "\"", "" );
+					start( url );
+				}
 
-			notify( currentEntry.getTitle(), value );
+				notify( title, description );
+			}
+			cursor.close();
 		} catch( IOException e ) {
 			Log.w( TAG, e.getMessage() );
 

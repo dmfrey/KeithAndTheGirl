@@ -9,6 +9,7 @@
     <string name="tab_listen">Listen</string>
     <string name="tab_social">Social</string>
     <string name="tab_web">Web</string>
+    <string name="tab_hosts">The Hosts</string>
     
     <string name="katg_header_logo_description">KATG Logo</string>
     <string name="katg_header_text_description">Keith and the Girl Free Comedy Show</string>
@@ -22,7 +23,10 @@
     <string name="context_menu_download_label">Download Episode</string>
     
     <string name="about_header">About KATG&#8230;</string>
-	<string name="about_description">Keith and Chemda put out the call for a new Android app for the show and I have answered that call.  My name is Dan Frey I wanted to give back something to the KATG audience.  If you like, you can Tweet me at <a href='http://twitter.com/dmfrey'>@dmfrey</a> with any questions.  I will address any bugs or feature requests in the KATG Forums.</string>
+	<string name="about_description_1">Keith and The Girl is a free comedy talk show hosted by Keith Malley and Chemda. Topics include current events, pop culture, politics and even intimate details of their lives.</string>
+ 	<string name="about_description_2">They create a new hour-long show each weekday and make it available on the site. Subscribe to the free podcast and have new episodes downloaded automatically.</string>
+ 	<string name="about_description_3">Every show is guaranteed to make you laugh!</string>
+	<string name="about_description_4">This app was created by Dan Frey (@dmfrey). I am straight, married, I have a solid B cup for a man, and I give a 1,000,001 shits about this app!</string>
  	<string name="about_close">Close</string>
 	
 	<string name="next_show_label">Next Show:</string>
@@ -68,5 +72,27 @@
     <string name="entry_download">Download Episode</string>
 	<string name="entry_play">Play Episode</string>
 	<string name="entry_delete">Delete Episode</string>
-		    
+
+	<string name="pref_settings_title">Settings</string>	
+	<string name="pref_vip_title">VIP</string>
+	<string name="pref_vip_description">Are you an IP or a VIP? Don\'t be an *JUST* IP...Be a VIP!</string>
+	<string name="pref_vip_instructions">Enter you VIP code</string>
+	
+	<string name="feedback_title">Feedback</string>
+	<string name="feedback_negative_button">Close</string>
+	<string name="feedback_positive_button">Send</string>
+	
+	<string name="host_studio_content_description">Keith and Chemda Studio</string>
+	<string name="host_facebook">Facebook</string>
+	<string name="host_twitter">Twitter</string>
+	<string name="host_website">WWW</string>
+	<string name="host_forums">Forums</string>
+	<string name="host_keith">Keith Malley</string>
+	<string name="host_keith_facebook">Keith Facebook</string>
+	<string name="host_keith_twitter">Keith Twitter</string>
+	<string name="host_chemda">Chemda</string>
+	<string name="host_chemda_facebook">Chemda Facebook</string>
+	<string name="host_chemda_twitter">Chemda Twitter</string>
+	<string name="host_chemda_www">Chemda Website</string>
+		
 </resources>

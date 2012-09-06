@@ -31,6 +31,9 @@ public class Guest {
 	@Element( name = "PictureUrl", required = false )
 	private String pictureUrl;
 	
+	@Element( name = "PictureUrlModified", required = false )
+	private String pictureUrlModified;
+	
 	@Element( name = "Urls", required = false )
 	private Urls urls;
 	
@@ -121,6 +124,20 @@ public class Guest {
 	}
 
 	/**
+	 * @return the pictureUrlModified
+	 */
+	public String getPictureUrlModified() {
+		return pictureUrlModified;
+	}
+
+	/**
+	 * @param pictureUrlModified the pictureUrlModified to set
+	 */
+	public void setPictureUrlModified( String pictureUrlModified ) {
+		this.pictureUrlModified = pictureUrlModified;
+	}
+
+	/**
 	 * @return the urls
 	 */
 	public Urls getUrls() {
@@ -164,6 +181,11 @@ public class Guest {
 		if( pictureUrl != null ) {
 			builder.append( "pictureUrl=" );
 			builder.append( pictureUrl );
+			builder.append( ", " );
+		}
+		if( pictureUrlModified != null ) {
+			builder.append( "pictureUrlModified=" );
+			builder.append( pictureUrlModified );
 			builder.append( ", " );
 		}
 		if( urls != null ) {

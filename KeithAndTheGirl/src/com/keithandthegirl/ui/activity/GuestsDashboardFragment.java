@@ -21,8 +21,8 @@ package com.keithandthegirl.ui.activity;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +51,10 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Messenger;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.ListFragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -69,6 +73,7 @@ import com.keithandthegirl.R;
 import com.keithandthegirl.api.guests.Guest;
 import com.keithandthegirl.api.guests.Guests;
 import com.keithandthegirl.api.guests.Url;
+import com.keithandthegirl.services.download.DownloadService;
 import com.keithandthegirl.utils.NotificationHelper;
 import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
@@ -84,6 +89,8 @@ public class GuestsDashboardFragment extends ListFragment {
 	private static final int MOST_RECENT_ID = Menu.FIRST + 11;
 	private static final int TOP_COUNT_ID = Menu.FIRST + 12;
 	private static final int NAME_ID = Menu.FIRST + 13;
+
+	private static final String GUESTS_DIR = "Guests";
 
 	private MainApplication mainApplication;
 	
@@ -238,6 +245,25 @@ public class GuestsDashboardFragment extends ListFragment {
 
 	// internal helpers
 	
+	private static class DownloadHandler extends Handler {
+		private final WeakReference<GuestsDashboardFragment> mFragment;
+		
+		DownloadHandler( GuestsDashboardFragment fragment ) {
+			mFragment = new WeakReference<GuestsDashboardFragment>( fragment );
+		}
+		
+		public void handleMessage( Message message ) {
+			
+			Object path = message.obj;
+			if( message.arg1 == FragmentActivity.RESULT_OK && path != null ) {
+				GuestsDashboardFragment parent = mFragment.get();
+				parent.adapter.notifyDataSetChanged();
+			}
+
+		};
+		
+	};
+
 	private void setupAdapter() {
 	    
 		getListView().invalidate();
@@ -349,7 +375,7 @@ public class GuestsDashboardFragment extends ListFragment {
 	            	root = Environment.getExternalStorageDirectory();
 	            }
 	            
-	            File pictureDir = new File( root, DownloadGuestImageTask.GUESTS_DIR );
+	            File pictureDir = new File( root, GUESTS_DIR );
 	            pictureDir.mkdirs();
 	            
 	            File f = new File( pictureDir, guest.getShowGuestId() + ".jpg" );
@@ -377,8 +403,18 @@ public class GuestsDashboardFragment extends ListFragment {
 	            } else {
 	    			//Log.v( TAG, "GuestRowAdapter.getView : image does not exist in cache dir" );
 
-	    			new DownloadGuestImageTask().execute( guest.getShowGuestId(), guest.getPictureUrl() );
+	            	Intent intent = new Intent( getActivity(), DownloadService.class );
+	                
+	            	// Create a new Messenger for the communication back
+	                Messenger messenger = new Messenger( new DownloadHandler( GuestsDashboardFragment.this ) );
+	                intent.putExtra( "MESSENGER", messenger );
+	                intent.setData( Uri.parse( guest.getPictureUrl() ) );
+	                intent.putExtra( "urlpath", guest.getPictureUrl() );
+	                intent.putExtra( "directory", GUESTS_DIR );
+	                intent.putExtra( "filename", String.valueOf( guest.getShowGuestId() ) );
+	                getActivity().startService( intent );
 	            }
+
 			}
 			mHolder.name.setText( guest.getRealName() + ( guest.getEpisodeCount() > 1 ? " (" + guest.getEpisodeCount() + " shows)" : "" ) );
 			mHolder.description.setText( guest.getDescription() );
@@ -569,96 +605,4 @@ public class GuestsDashboardFragment extends ListFragment {
 		
 	}
 	
-	private class DownloadGuestImageTask extends AsyncTask<Object, Void, Bitmap> {
-
-		public static final String GUESTS_DIR = "Guests";
-
-		private Exception e = null;
-
-		private Integer showGuestId;
-		private String pictureUrl;
-		
-		@Override
-		protected Bitmap doInBackground( Object... params ) {
-			Log.v( TAG, "DownloadGuestImageTask.doInBackground : enter" );
-
-			showGuestId = (Integer) params[ 0 ];
-			pictureUrl = (String) params[ 1 ];
-			
-			Bitmap bitmap = null;
-
-			RestTemplate template = new RestTemplate( true, ClientHttpRequestFactorySelector.getRequestFactory() );
-
-			HttpHeaders requestHeaders = new HttpHeaders();
-			requestHeaders.setAcceptEncoding( Collections.singletonList( ContentCodingType.GZIP ) );
-
-			HttpEntity<?> entity = new HttpEntity<Object>( requestHeaders );
-			
-			try {
-				ResponseEntity<byte[]> responseEntity = template.exchange( pictureUrl, HttpMethod.GET, entity, byte[].class );
-				switch( responseEntity.getStatusCode() ) {
-					case OK :
-						Log.v( TAG, "DownloadGuestImageTask.doInBackground : exit, Ok" );
-
-						byte[] bytes = responseEntity.getBody();
-						bitmap = BitmapFactory.decodeByteArray( bytes, 0, bytes.length );
-						return bitmap;
-					default:
-						Log.v( TAG, "DownloadGuestImageTask.doInBackground : exit, error" );
-
-						return null;
-				}
-			} catch( Exception e ) {
-				Log.e( TAG, "DownloadGuestImageTask.doInBackground : exit, error", e );
-
-				return null;
-			}
-		}
-
-		@Override
-		protected void onPostExecute( Bitmap result ) {
-			Log.v( TAG, "DownloadGuestImageTask.onPostExecute : enter" );
-
-			if( null == e ) {
-				Log.v( TAG, "DownloadGuestImageTask.onPostExecute : result size=" + result.getHeight() + "x" + result.getWidth() );
-
-		        try {
-		            File root;
-		            if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
-		            	root = getActivity().getExternalCacheDir();
-		            } else {
-		            	root = Environment.getExternalStorageDirectory();
-		            }
-		            
-		            File pictureDir = new File( root, GUESTS_DIR );
-		            pictureDir.mkdirs();
-		            
-		            File f = new File( pictureDir, showGuestId + ".jpg" );
-	                if( f.exists() ) {
-						return;
-		            }
-		
-	                String name = f.getAbsolutePath();
-	                FileOutputStream fos = new FileOutputStream( name );
-	                result.compress( Bitmap.CompressFormat.JPEG, 100, fos );
-	                fos.flush();
-	                fos.close();
-
-					images.put( showGuestId, result );
-
-					adapter.notifyDataSetChanged();
-	                
-		        } catch( Exception e ) {
-		        	Log.e( TAG, "error saving file", e );
-		        }
-		 
-			} else {
-				Log.e( TAG, "error getting program group banner", e );
-			}
-
-			Log.v( TAG, "onPostExecute : exit" );
-		}
-
-	}
-
 }

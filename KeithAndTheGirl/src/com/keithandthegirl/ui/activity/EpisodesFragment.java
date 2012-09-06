@@ -20,24 +20,27 @@
 package com.keithandthegirl.ui.activity;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
+import java.lang.ref.WeakReference;
 import java.util.Date;
 
 import android.annotation.TargetApi;
 import android.content.BroadcastReceiver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.os.AsyncTask;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Messenger;
+import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.ListFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -58,9 +61,9 @@ import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
 import com.keithandthegirl.db.EpisodeConstants;
+import com.keithandthegirl.services.download.DownloadService;
+import com.keithandthegirl.services.download.DownloadService.FileType;
 import com.keithandthegirl.services.episode.EpisodeServiceHelper;
-import com.keithandthegirl.utils.NotificationHelper;
-import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
 /**
  * @author Daniel Frey
@@ -69,17 +72,18 @@ import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 public class EpisodesFragment extends ListFragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
 	private static final String TAG = EpisodesFragment.class.getSimpleName();
-	private static final int REFRESH_ID = Menu.FIRST + 10;
+	private static final int REFRESH_ID = Menu.FIRST + 30;
 
 	private static final String DOWNLOAD_IN_PROGRESS_KEY = "DOWNLOAD_IN_PROGRESS";
+	private static final String DOWNLOAD_IN_PROGRESS_ID_KEY = "DOWNLOAD_IN_PROGRESS_ID";
 	
 	private EpisodeCursorAdapter adapter;
 	private EpisodesReceiver episodesReceiver;
 	
 	private EpisodeServiceHelper mEpisodeServiceHelper;
-	private NotificationHelper mNotificationHelper;
 	
 	private boolean downloadInProgress = false;
+	private long downloadInProgressId;
 
 	/* (non-Javadoc)
 	 * @see android.support.v4.app.LoaderManager.LoaderCallbacks#onCreateLoader(int, android.os.Bundle)
@@ -88,11 +92,17 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	public Loader<Cursor> onCreateLoader( int id, Bundle args ) {
 		Log.v( TAG, "onCreateLoader : enter" );
 		
-		String selection = EpisodeConstants.FIELD_VIP + " = ? OR " + EpisodeConstants.FIELD_FILE + " IS NOT NULL";
+		int vip = args.getInt( "VIP" );
 		
-		String[] selectionArgs = new String[] { "0" };
+		String selection = EpisodeConstants.FIELD_VIP + " = ? OR (" + EpisodeConstants.FIELD_VIP + " = ? AND " + EpisodeConstants.FIELD_FILE + " != ?)";
+		String[] selectionArgs = new String[] { "0", "1", "" };
+
+		if( vip == 1 ) {
+			selection = null;
+			selectionArgs = null;
+		}
 		
-		String sortOrder = EpisodeConstants.FIELD_NUMBER + " DESC";
+		String sortOrder = EpisodeConstants.FIELD_PUBLISH_DATE + " DESC";
 		
 	    CursorLoader cursorLoader = new CursorLoader( getActivity(), EpisodeConstants.CONTENT_URI, null, selection, selectionArgs, sortOrder );
 		
@@ -129,6 +139,17 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	}
 
 	/* (non-Javadoc)
+	 * @see android.support.v4.app.Fragment#onCreate(android.os.Bundle)
+	 */
+	@Override
+	public void onCreate( Bundle savedInstanceState ) {
+		Log.v( TAG, "onCreate : enter" );
+		super.onCreate( savedInstanceState );
+
+		Log.v( TAG, "onCreate : exit" );
+	}
+
+	/* (non-Javadoc)
 	 * @see android.support.v4.app.Fragment#onActivityCreated(android.os.Bundle)
 	 */
 	@Override
@@ -136,12 +157,18 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		Log.v( TAG, "onActivityCreated : enter" );
 		super.onActivityCreated( savedInstanceState );
 
-		mNotificationHelper = new NotificationHelper( getActivity() );
-
 		setHasOptionsMenu( true );
 		setRetainInstance( true );
 
-		getLoaderManager().initLoader( 0, null, this );
+		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( getActivity() );
+        String vip = sharedPref.getString( MainApplication.KATG_RSS_FEED_VIP_KEY, "" );
+        boolean isVip = ( null != vip && !"".equals( vip ) ? true : false );
+        Log.v( TAG, "onActivityCreated : isVip=" + isVip );
+        
+        Bundle args = new Bundle();
+        args.putInt( "VIP", ( isVip ? 1 : 0 ) );
+        
+		getLoaderManager().initLoader( 0, args, this );
 		 
 	    adapter = new EpisodeCursorAdapter( getActivity().getApplicationContext() );
 	    
@@ -186,14 +213,15 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		episodesReceiver = new EpisodesReceiver();
         getActivity().registerReceiver( episodesReceiver, episodeFilter );
 
-		Cursor episodeCursor = getActivity().getContentResolver().query( EpisodeConstants.CONTENT_URI, new String[] { EpisodeConstants._ID }, EpisodeConstants.FIELD_VIP + " = ?", new String[] { "0" }, null );
+		Cursor episodeCursor = getActivity().getContentResolver().query( EpisodeConstants.CONTENT_URI, new String[] { EpisodeConstants._ID }, null, null, null );
 		if( episodeCursor.getCount() == 0 ) {
 			loadData();
 		}
 		episodeCursor.close();
         
-		SharedPreferences sharedPreferences = getActivity().getPreferences( Context.MODE_PRIVATE );
-		downloadInProgress = sharedPreferences.getBoolean( DOWNLOAD_IN_PROGRESS_KEY, false );
+		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( getActivity() );
+		downloadInProgress = sharedPref.getBoolean( DOWNLOAD_IN_PROGRESS_KEY, false );
+		downloadInProgressId = sharedPref.getLong( DOWNLOAD_IN_PROGRESS_ID_KEY, -1 );
 		
 		Log.v( TAG, "onResume : exit" );
 	}
@@ -237,6 +265,32 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	}
 
 	// internal helpers
+
+	private static class DownloadHandler extends Handler {
+		private final WeakReference<EpisodesFragment> mFragment;
+		
+		DownloadHandler( EpisodesFragment fragment ) {
+			mFragment = new WeakReference<EpisodesFragment>( fragment );
+		}
+		
+		public void handleMessage( Message message ) {
+			
+			Object obj = message.obj;
+			if( message.arg1 == 9999 && obj != null ) {
+				EpisodesFragment parent = mFragment.get();
+				parent.updateDownloadingStatus( true, (Long) obj );
+				parent.adapter.notifyDataSetChanged();
+			}
+
+			if( message.arg1 == FragmentActivity.RESULT_OK && obj != null ) {
+				EpisodesFragment parent = mFragment.get();
+				parent.updateDownloadingStatus( false, -1 );
+				parent.adapter.notifyDataSetChanged();
+			}
+
+		};
+		
+	};
 
 	private void loadData() {
 		Log.v( TAG, "loadData : enter" );
@@ -287,17 +341,22 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		public void bindView( View view, Context context, Cursor cursor ) {
 	        Log.v( TAG, "bindView : enter" );
 
-	        final int number = getCursor().getInt( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_NUMBER ) );
+	        final long id = getCursor().getLong( getCursor().getColumnIndexOrThrow( EpisodeConstants._ID ) );
+	        final String show = getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_SHOW ) );
 	        final String title = getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_TITLE ) );
-	        String description = cursor.getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_DESCRIPTION ) );
-	        Date date = new Date( getCursor().getLong( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_PUBLISH_DATE ) ) );
+	        final String description = cursor.getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_DESCRIPTION ) );
+	        final Date date = new Date( getCursor().getLong( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_PUBLISH_DATE ) ) );
 	        final String url = getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_URL ) );
+	        final String type = getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_TYPE ) );
 	        final String file = null != getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_FILE ) ) ? getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_FILE ) ) : "";
-	        Log.v( TAG, "bindView : file=" + file );
+	        final long vip = getCursor().getLong( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_VIP ) );
+	        Log.v( TAG, "bindView : file=" + file + ", vip=" + vip + ", type=" + type );
+	        
+		    final FileType extension = FileType.findByMimeType( type );
 
 	        ViewHolder mHolder = (ViewHolder) view.getTag();
 			
-			mHolder.title.setText( number + ": " + title );
+			mHolder.title.setText( title );
 			mHolder.description.setText( description );
 			mHolder.date.setText( ( (MainApplication) mContext.getApplicationContext() ).getFormat().format( date ) );
 
@@ -306,7 +365,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 				@Override
 				public void onClick( View v ) {
 
-					play( PlayType.RECORDED, number );
+					play( PlayType.RECORDED, extension, id, title, description, url, file );
 
 				}
 				
@@ -314,12 +373,29 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 
             File root;
             if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
-            	root = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_PODCASTS );
+        	    switch( extension ) {
+        	    case MP3 :
+        	    	root = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_PODCASTS );
+        	    	
+        	    	break;
+        	    case MP4 :
+        	    	root = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_MOVIES );
+        	    	
+        	    	break;
+        	    case M4V :
+        	    	root = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_MOVIES );
+        	    	
+        	    	break;
+        	    default :
+        	    	root = Environment.getExternalStorageDirectory();
+        	    	
+        	    	break;
+        	    }
             } else {
             	root = Environment.getExternalStorageDirectory();
             }
             
-            File episodeDir = new File( root, "KATG" );
+            File episodeDir = new File( root, show );
             episodeDir.mkdirs();
             
             if( !"".equals( file ) ) {
@@ -337,7 +413,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 							ContentValues values = new ContentValues();
 							values.put( EpisodeConstants.FIELD_FILE, "" );
 							
-							getActivity().getContentResolver().update( EpisodeConstants.CONTENT_URI, values, EpisodeConstants.FIELD_NUMBER + " = ?", new String[] { "" + number } );
+							getActivity().getContentResolver().update( ContentUris.withAppendedId( EpisodeConstants.CONTENT_URI, id ), values, null, null );
 							
 							f.delete();
 							
@@ -358,7 +434,23 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 					public void onClick( View v ) {
 						
 						if( !downloadInProgress ) {
-							new DownloadEpisodeTask().execute( "" + number, number + ": " + title, url );
+							
+			            	Intent intent = new Intent( getActivity(), DownloadService.class );
+			                
+			            	// Create a new Messenger for the communication back
+			                Messenger messenger = new Messenger( new DownloadHandler( EpisodesFragment.this ) );
+			                intent.putExtra( "MESSENGER", messenger );
+			                intent.setData( Uri.parse( url ) );
+			                intent.putExtra( "urlpath", url );
+			                intent.putExtra( "id", id );
+			                intent.putExtra( "directory", show );
+			                intent.putExtra( "title", title );
+			                getActivity().startService( intent );
+
+							updateDownloadingStatus( true, id );
+
+							notifyDataSetChanged();
+			                
 						} else {
 					    	Toast toast = Toast.makeText( mContext, "Please wait until current download finishes.", Toast.LENGTH_SHORT );
 					    	toast.show();
@@ -369,6 +461,16 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 
             }
 
+            if( title.equalsIgnoreCase( "where are more katg shows" ) ) {
+            	mHolder.download.setVisibility( View.GONE );
+            	mHolder.delete.setVisibility( View.GONE );
+            }
+            
+            if( id == downloadInProgressId ) {
+            	mHolder.download.setVisibility( View.GONE );
+            	mHolder.delete.setVisibility( View.GONE );
+            }
+            
             Log.v( TAG, "bindView : exit" );
 		}
 
@@ -387,148 +489,43 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	
 	}
 	
-	private class DownloadEpisodeTask extends AsyncTask<String, Integer, File> {
-
-		private Exception e = null;
-
-		private String number;
-		private String filename;
-		
-		/* (non-Javadoc)
-		 * @see android.os.AsyncTask#onProgressUpdate(Progress[])
-		 */
-		@Override
-		protected void onProgressUpdate( Integer... values ) {
-			//Log.v( TAG, "DownloadEpisodeTask.onProgressUpdate : enter" );
-			super.onProgressUpdate( values );
-
-			int read = values[ 0 ];
-			int length = values[ 1 ];
-			double percent = ( ( (float) read / (float) length ) * 100 );
-			
-			//Log.v( TAG, "DownloadEpisodeTask.onProgressUpdate : percent complete=" + percent );
-
-			if( percent < 100.0 ) {
-				updateDownloadingStatus( true );
-			} else {
-				updateDownloadingStatus( false );
-			}
-			
-			mNotificationHelper.progressUpdate( percent );
-			
-			//Log.v( TAG, "DownloadEpisodeTask.onProgressUpdate : exit" );
-		}
-
-		@TargetApi( 8 )
-		@Override
-		protected File doInBackground( String... params ) {
-			Log.v( TAG, "DownloadEpisodeTask.doInBackground : enter" );
-
-			updateDownloadingStatus( true );
-			
-			number = params[ 0 ];
-			String title = params[ 1 ];
-			String address = params[ 2 ];
-			
-            URL url;
-            URLConnection con;
-            InputStream is;
-            FileOutputStream fos;
-            byte[] buffer = new byte[ 4096 ];
-
-            try {
-                File root;
-                if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
-                	root = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_PODCASTS );
-                } else {
-                	root = Environment.getExternalStorageDirectory();
-                }
-	            
-	            File episodeDir = new File( root, "KATG" );
-	            episodeDir.mkdirs();
-	            
-	            File f = new File( episodeDir, address.substring( address.lastIndexOf( '/' ) + 1 ) );
-                if( f.exists() ) {
-                	Log.v( TAG, "DownloadEpisodeTask.doInBackground : exit, episode already downloaded" );
-                	
-					ContentValues values = new ContentValues();
-					values.put( EpisodeConstants.FIELD_FILE, f.getAbsolutePath() );
-					
-					getActivity().getContentResolver().update( EpisodeConstants.CONTENT_URI, values, EpisodeConstants.FIELD_NUMBER + " = ?", new String[] { number } );
-					
-					return null;
-	            }
-                
-                mNotificationHelper.createNotification( "KeithAndTheGirl", "Downloading Episode: " + title, NotificationType.DOWNLOAD );
-                
-                filename = f.getAbsolutePath();
-                
-                url = new URL( address );
-            	con = url.openConnection();
-                is = con.getInputStream();
-                fos = new FileOutputStream( f );
-                
-                int length = con.getContentLength();
-                int total = 0, read = -1;
-                while( ( read = is.read( buffer ) ) != -1 ) {
-					fos.write(  buffer, 0, read );
-					
-					total += read;
-					
-					Float percent = ( ( (float) total / (float) length ) * 100 );
-					
-					if( percent.intValue() % 10 == 0 ) {
-						publishProgress( total, length );
-					}
-				}
-                is.close();
-                fos.close();
-                
-				Log.v( TAG, "DownloadEpisodeTask.doInBackground : exit" );
-                return f;
-			} catch( Exception e ) {
-				Log.e( TAG, "DownloadEpisodeTask.doInBackground : exit, error", e );
-				
-				this.e = e;
-				
-				return null;
-			}
-            
-		}
-
-		@Override
-		protected void onPostExecute( File result ) {
-			Log.v( TAG, "DownloadEpisodeTask.onPostExecute : enter" );
-
-			updateDownloadingStatus( false );
-
-			if( null == e && null != result ) {
-				Log.v( TAG, "DownloadEpisodeTask.onPostExecute : file downloaded successfully" );
-							
-				mNotificationHelper.completed();
-
-				ContentValues values = new ContentValues();
-				values.put( EpisodeConstants.FIELD_FILE, filename );
-				
-				getActivity().getContentResolver().update( EpisodeConstants.CONTENT_URI, values, EpisodeConstants.FIELD_NUMBER + " = ?", new String[] { number } );
-
-			}
-
-			adapter.notifyDataSetChanged();
-			
-			Log.v( TAG, "DownloadEpisodeTask.onPostExecute : exit" );
-		}
-
-	}
-
-	private void play( PlayType type, Integer number ) {
+	private void play( PlayType type, FileType extension, Long id, String title, String description, String url, String file ) {
 		Log.d( TAG, "play : enter" );
 		
-		Intent intent = new Intent( getActivity(), PlayerActivity.class );
-		intent.putExtra( "PLAY_TYPE", type.name() );
-		intent.putExtra( "EPISODE", number );
-		
-		startActivity( intent );
+		switch( extension ) {
+		case MP3 :
+			Log.d( TAG, "play : playing mp3" );
+			
+			Intent mp3Activity = new Intent( getActivity(), PlayerActivity.class );
+			mp3Activity.putExtra( "PLAY_TYPE", type.name() );
+			mp3Activity.putExtra( "EPISODE", id );
+			mp3Activity.putExtra( "TITLE", title );
+			mp3Activity.putExtra( "DESCRIPTION", description );
+			
+			startActivity( mp3Activity );
+			
+			break;
+		case MP4 :
+			Log.d( TAG, "play : playing mp4" );
+			
+			Intent mp4Activity = new Intent( Intent.ACTION_VIEW );
+			mp4Activity.setDataAndType( Uri.parse( ( null != file && !"".equals( file ) ? file : url ) ), extension.getMimeType() );
+			startActivity( mp4Activity );
+			
+			break;
+		case M4V :
+			Log.d( TAG, "play : playing m4v" );
+			
+			Intent m4vActivity = new Intent( Intent.ACTION_VIEW );
+			m4vActivity.setDataAndType( Uri.parse( ( null != file && !"".equals( file ) ? file : url ) ), extension.getMimeType() );
+			startActivity( m4vActivity );
+			
+			break;
+		default :
+			Log.d( TAG, "play : unknown play type" );
+			
+			break;
+		}
 		
 		Log.d( TAG, "play : exit" );
 	}
@@ -549,21 +546,38 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	private void restartLoader() {
 		Log.v( TAG, "restartLoader : enter" );
 		
-		getLoaderManager().restartLoader( 0, null, this );
+		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( getActivity() );
+        String vip = sharedPref.getString( MainApplication.KATG_RSS_FEED_VIP_KEY, "" );
+        boolean isVip = ( null != vip && !"".equals( vip ) ? true : false );
+
+        Bundle args = new Bundle();
+        args.putInt( "VIP", ( isVip ? 1 : 0 ) );
+        
+		getLoaderManager().restartLoader( 0, args, this );
 
 		Log.v( TAG, "restartLoader : exit" );
 	}
 
-	private void updateDownloadingStatus( boolean status ) {
+	private void updateDownloadingStatus( boolean isDownloading, long id ) {
+		Log.v( TAG, "updateDownloadingStatus : enter" );
 		
-		downloadInProgress = status;
-		
-		SharedPreferences sharedPreferences = getActivity().getPreferences( Context.MODE_PRIVATE );
-    	SharedPreferences.Editor editor = sharedPreferences.edit();
-    	editor.putBoolean( DOWNLOAD_IN_PROGRESS_KEY, status );
-    	editor.commit();
+		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( getActivity() );
+		downloadInProgress = isDownloading;
+		downloadInProgressId = id;
+		Log.v( TAG, "updateDownloadingStatus : downloadInProgress=" + downloadInProgressId );
 
+		SharedPreferences.Editor editor = sharedPref.edit();
+		editor.putBoolean( DOWNLOAD_IN_PROGRESS_KEY, isDownloading );
+    	if( downloadInProgress ) {
+    		editor.putLong( DOWNLOAD_IN_PROGRESS_ID_KEY, id );
+    	} else {
+        	editor.remove( DOWNLOAD_IN_PROGRESS_ID_KEY );
+    	}
+    	editor.commit();
 		
+    	adapter.notifyDataSetChanged();
+    	
+		Log.v( TAG, "updateDownloadingStatus : exit" );
 	}
 	
 }

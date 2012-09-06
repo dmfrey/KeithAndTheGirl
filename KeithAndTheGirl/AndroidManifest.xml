@@ -38,10 +38,29 @@
 		<activity 
 			android:name=".ui.activity.EpisodesActivity" />
 		
-		<service android:enabled="true" android:name=".services.episode.EpisodeService" />
-		<service android:enabled="true" android:name=".services.MediaPlayerService" />
-		<service android:enabled="true" android:name=".services.UpdateFeedService" />
-		<service android:enabled="true" android:name=".services.UpdateCalendarService" />
+		<activity 
+			android:name=".ui.preferences.SettingsActivity" />
+		<activity 
+			android:name=".ui.preferences.SettingsActivityHC" />
+			
+		
+		<!-- KATG Services -->	
+		<service 
+		    android:enabled="true" 
+		    android:name=".services.download.DownloadService" />
+
+		<service 
+		    android:enabled="true" 
+		    android:name=".services.episode.EpisodeService" />
+		
+		<service 
+		    android:enabled="true" 
+		    android:name=".services.MediaPlayerService" />
+		
+		<service 
+		    android:enabled="true" 
+		    android:name=".services.UpdateCalendarService" />
+		
 		
 		<!-- KATG Providers -->
 		<provider

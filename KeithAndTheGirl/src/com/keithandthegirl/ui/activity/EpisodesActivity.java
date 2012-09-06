@@ -33,6 +33,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import com.keithandthegirl.R;
+import com.keithandthegirl.ui.preferences.SettingsActivity;
+import com.keithandthegirl.ui.preferences.SettingsActivityHC;
 
 /**
  * @author Daniel Frey
@@ -41,7 +43,8 @@ import com.keithandthegirl.R;
 public class EpisodesActivity extends FragmentActivity {
 
 	private static final String TAG = EpisodesActivity.class.getSimpleName();
-	private static final int ABOUT_ID = Menu.FIRST + 2;
+	private static final int SETTINGS_ID = Menu.FIRST + 10;
+	private static final int ABOUT_ID = Menu.FIRST + 20;
 	
 	/* (non-Javadoc)
 	 * @see android.support.v4.app.FragmentActivity#onCreate(android.os.Bundle)
@@ -63,6 +66,11 @@ public class EpisodesActivity extends FragmentActivity {
 	public boolean onCreateOptionsMenu( Menu menu ) {
 		Log.d( TAG, "onCreateOptionsMenu : enter" );
 
+	    MenuItem settings = menu.add( Menu.NONE, SETTINGS_ID, Menu.NONE, getResources().getString( R.string.pref_settings_title ) );
+	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+	    	settings.setShowAsAction( MenuItem.SHOW_AS_ACTION_NEVER );
+	    }
+
 	    MenuItem about = menu.add( Menu.NONE, ABOUT_ID, Menu.NONE, getResources().getString( R.string.about_header ) );
 	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
 	    	about.setShowAsAction( MenuItem.SHOW_AS_ACTION_NEVER );
@@ -83,6 +91,16 @@ public class EpisodesActivity extends FragmentActivity {
 				intent.addFlags( Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK );
 				startActivity( intent );
 				
+				return true;
+			case SETTINGS_ID:
+				Log.d( TAG, "onOptionsItemSelected : settings selected" );
+
+			    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+			    	startActivity( new Intent( this, SettingsActivityHC.class ) );
+			    } else {
+			    	startActivity( new Intent( this, SettingsActivity.class ) );
+			    }
+			    
 				return true;
 			case ABOUT_ID:
 				Log.d( TAG, "onOptionsItemSelected : about selected" );

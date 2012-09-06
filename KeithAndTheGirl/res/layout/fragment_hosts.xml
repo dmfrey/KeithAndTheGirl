@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+ *  This file is part of KeithAndTheGirl for Android
+ * 
+ *  KeithAndTheGirl for Android is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  KeithAndTheGirl for Android is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with KeithAndTheGirl for Android.  If not, see <http://www.gnu.org/licenses/>.
+ *   
+ * This software can be found at <https://github.com/dmfrey/KeithAndTheGirl/>
+ *
+-->
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:background="#ffffff">
+    
+	<LinearLayout
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+    	android:orientation="vertical"
+		android:padding="10dip">
+	
+    	<LinearLayout
+        	android:layout_width="fill_parent"
+        	android:layout_height="wrap_content"
+        	android:gravity="center" >
+        
+    		<Button android:id="@+id/host_btn_facebook"
+        		style="@style/DashboardButton"
+        		android:text="@string/host_facebook"
+        		android:textColor="@color/dashboard_text"
+        		android:drawableTop="@drawable/host_btn_facebook" />
+    		
+    		<Button android:id="@+id/host_btn_twitter"
+        		style="@style/DashboardButton"
+        		android:text="@string/host_twitter"
+        		android:textColor="@color/dashboard_text"
+        		android:drawableTop="@drawable/host_btn_twitter" />
+    		
+			<Button android:id="@+id/host_btn_website"
+        		style="@style/DashboardButton"
+        		android:text="@string/host_website"
+        		android:textColor="@color/dashboard_text"
+        		android:drawableTop="@drawable/host_btn_website" />
+    
+    	</LinearLayout>
+    
+    	<LinearLayout
+        	android:layout_width="match_parent"      	android:layout_height="wrap_content"
+        	android:layout_marginLeft="5dp"
+        	android:layout_marginRight="5dp"
+        	android:layout_marginTop="20dp"
+        	android:orientation="horizontal"
+        	android:gravity="center" >
+    	
+        	<ImageView
+            	android:layout_width="match_parent"
+            	android:layout_height="wrap_content"
+				android:src="@drawable/keith_chemda_studio"
+				android:contentDescription="@string/host_studio_content_description" />
+        
+    	</LinearLayout>
+    
+    	<LinearLayout
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:layout_marginLeft="5dp"
+        	android:layout_marginRight="5dp"
+        	android:layout_marginTop="20dp"
+        	android:orientation="vertical" >
+    	
+	        <LinearLayout
+    			android:orientation="horizontal"
+    			android:layout_width="fill_parent"
+    			android:layout_height="wrap_content">
+        
+	   	    	<TextView 
+	    			style="@style/Text"
+    				android:text="@string/host_keith"
+    				android:textSize="24sp"
+    				android:textStyle="bold" />
+
+        		<LinearLayout
+    				android:orientation="horizontal"
+    				android:layout_width="fill_parent"
+    				android:layout_height="wrap_content"
+    				android:gravity="right">
+	   	    
+			   	    <ImageView
+    		    		android:id="@+id/host_keith_facebook"
+        				android:contentDescription="@string/host_keith_facebook"
+        				android:scaleType="center"
+        				android:layout_width="42dp"
+	        			android:layout_height="32dp"
+	    	    		android:paddingLeft="5sp"
+        				android:paddingRight="5sp"
+        				android:adjustViewBounds="true"
+        				android:src="@drawable/f_logo" />
+        
+		    		<ImageView
+    		    		android:id="@+id/host_keith_twitter"
+        				android:contentDescription="@string/host_keith_twitter"
+        				android:scaleType="center"
+        				android:layout_width="42dp"
+	        			android:layout_height="32dp"
+	    	    		android:paddingLeft="5sp"
+    	    			android:paddingRight="5sp"
+        				android:adjustViewBounds="true"
+        				android:src="@drawable/t_logo" />
+        
+		    	</LinearLayout>
+    
+    	    </LinearLayout>
+        
+	    	<TextView
+	        	style="@style/Text"
+	        	android:text="After a mere year performing stand-up comedy, Keith Malley was the 2004 grand prize winner at the prestigious World Comedy Laugh Off in New York City. He immediately recorded his debut CD/DVD Coming of Age and vowed to record a new one-take only CD/DVD each and every birthday with all new material. He has just released his eighth DVD entitled Stay Inside." />
+	    
+		    <TextView
+		        style="@style/Text"
+	    	    android:text="Keith's praised autobiography The Great American Novel covers the first 30 years of his life, and has also been read by the author as an audio book." />
+
+		</LinearLayout>
+
+	    <LinearLayout
+    	    android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:layout_marginLeft="5dp"
+        	android:layout_marginRight="5dp"
+        	android:layout_marginTop="20dp"
+        	android:orientation="vertical" >
+    	
+	        <LinearLayout
+    			android:orientation="horizontal"
+    			android:layout_width="fill_parent"
+    			android:layout_height="wrap_content">
+        
+			    <TextView 
+    				style="@style/Text"
+    				android:text="@string/host_chemda"
+    				android:textSize="24sp"
+	    			android:textStyle="bold" />
+	    
+        		<LinearLayout
+    				android:orientation="horizontal"
+    				android:layout_width="fill_parent"
+    				android:layout_height="wrap_content"
+    				android:gravity="right">
+	   	    
+			   	    <ImageView
+    		    		android:id="@+id/host_chemda_facebook"
+        				android:contentDescription="@string/host_chemda_facebook"
+        				android:scaleType="center"
+        				android:layout_width="42dp"
+	        			android:layout_height="32dp"
+	    	    		android:paddingLeft="5sp"
+        				android:paddingRight="5sp"
+        				android:adjustViewBounds="true"
+        				android:src="@drawable/f_logo" />
+        
+		    		<ImageView
+    		    		android:id="@+id/host_chemda_twitter"
+        				android:contentDescription="@string/host_chemda_twitter"
+        				android:scaleType="center"
+        				android:layout_width="42dp"
+	        			android:layout_height="32dp"
+	    	    		android:paddingLeft="5sp"
+    	    			android:paddingRight="5sp"
+        				android:adjustViewBounds="true"
+        				android:src="@drawable/t_logo" />
+        
+		    		<ImageView
+    		    		android:id="@+id/host_chemda_www"
+        				android:contentDescription="@string/host_chemda_www"
+        				android:scaleType="center"
+        				android:layout_width="42dp"
+	        			android:layout_height="32dp"
+	    	    		android:paddingLeft="5sp"
+    	    			android:paddingRight="5sp"
+        				android:adjustViewBounds="true"
+        				android:src="@drawable/www" />
+        
+		    	</LinearLayout>
+    
+    	    </LinearLayout>
+        
+		    <TextView
+	    	    style="@style/Text"
+	        	android:text="Chemda made her first professional appearance in 1995 on well-known reggae artist Dr. Israel's second album. Since then, she was the lead singer and choreographer for Mighty Dub Katz; featured on Comedy Central aside comedian Jeff Ross; and, teamed up with Rhys Fulber (formally of Front Line Assembly) for Conjure One as writer and singer, with songs featured on ESPN and EA Sports’ FIFA 2002." />
+	    
+	    	<TextView
+	        	style="@style/Text"
+	        	android:text="Along with recent European tours, Chemda completed a US/Canadian tour as the sole vocalist for Conjure One, performing in venues such as Commodore Ballroom, Vancouver, BC and Irving Plaza, New York, NY. She has recorded vocals for the follow-up album to Conjure One entitled Extraordinary Ways." />
+
+		    <TextView
+		        style="@style/Text"
+	    	    android:text="Later that year, Chemda also wrote and sang on the album Patterns of War as part of the new dub band Dreadtone International. Chemda recently finished recording the CD for the rock opera Victory in Defeat and continues to write and collaborate with various artists around the world." />
+
+		</LinearLayout>
+
+	</LinearLayout>
+
+</ScrollView>

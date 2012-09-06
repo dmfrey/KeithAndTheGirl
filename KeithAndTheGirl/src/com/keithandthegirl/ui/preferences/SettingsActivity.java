@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 
+/**
  *  This file is part of KeithAndTheGirl for Android
  * 
  *  KeithAndTheGirl for Android is free software: you can redistribute it and/or modify
@@ -17,31 +16,35 @@
  *   
  * This software can be found at <https://github.com/dmfrey/KeithAndTheGirl/>
  *
--->
+ */
+package com.keithandthegirl.ui.preferences;
 
-<merge xmlns:android="http://schemas.android.com/apk/res/android">
-	
-	<ScrollView
-		style="@style/ScrollView">
+import android.os.Bundle;
+import android.preference.PreferenceActivity;
+import android.util.Log;
 
-			<LinearLayout
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-			    android:orientation="vertical"
-	    		android:padding="10dip">
-	
-				<TextView 
-					style="@style/HeadingText" 
-					android:id="@+id/about_header_text_view"
-					android:text="@string/about_header" />
+import com.keithandthegirl.R;
 
-				<TextView 
-			    	style="@style/Text"
-			    	android:id="@+id/about_description_text_view"
-			    	android:text="@string/about_description_1" />
-				
-			</LinearLayout>
-			    		
-	</ScrollView>
+/**
+ * @author Daniel Frey
+ *
+ */
+public class SettingsActivity extends PreferenceActivity {
+
+	private static final String TAG = SettingsActivity.class.getSimpleName();
 	
-</merge>
+	/* (non-Javadoc)
+	 * @see android.preference.PreferenceActivity#onCreate(android.os.Bundle)
+	 */
+	@SuppressWarnings( "deprecation" )
+	@Override
+	protected void onCreate( Bundle savedInstanceState ) {
+		Log.v( TAG, "onCreate : enter" );
+		super.onCreate( savedInstanceState );
+
+		addPreferencesFromResource( R.xml.preferences );
+		
+		Log.v( TAG, "onCreate : exit" );
+	}
+
+}
