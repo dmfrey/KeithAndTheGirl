@@ -20,17 +20,17 @@
 package com.keithandthegirl.ui.activity;
 
 import java.io.File;
-import java.lang.ref.WeakReference;
 import java.util.Date;
 
 import android.annotation.TargetApi;
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -39,8 +39,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
-import android.preference.PreferenceManager;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.ListFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -74,17 +72,13 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	private static final String TAG = EpisodesFragment.class.getSimpleName();
 	private static final int REFRESH_ID = Menu.FIRST + 30;
 
-	private static final String DOWNLOAD_IN_PROGRESS_KEY = "DOWNLOAD_IN_PROGRESS";
-	private static final String DOWNLOAD_IN_PROGRESS_ID_KEY = "DOWNLOAD_IN_PROGRESS_ID";
-	
 	private EpisodeCursorAdapter adapter;
 	private EpisodesReceiver episodesReceiver;
 	
 	private EpisodeServiceHelper mEpisodeServiceHelper;
 	
-	private boolean downloadInProgress = false;
-	private long downloadInProgressId;
-
+	private MainApplication mainApplication;
+	
 	/* (non-Javadoc)
 	 * @see android.support.v4.app.LoaderManager.LoaderCallbacks#onCreateLoader(int, android.os.Bundle)
 	 */
@@ -146,6 +140,8 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		Log.v( TAG, "onCreate : enter" );
 		super.onCreate( savedInstanceState );
 
+		mainApplication = (MainApplication) getActivity().getApplicationContext();
+		
 		Log.v( TAG, "onCreate : exit" );
 	}
 
@@ -160,13 +156,8 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		setHasOptionsMenu( true );
 		setRetainInstance( true );
 
-		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( getActivity() );
-        String vip = sharedPref.getString( MainApplication.KATG_RSS_FEED_VIP_KEY, "" );
-        boolean isVip = ( null != vip && !"".equals( vip ) ? true : false );
-        Log.v( TAG, "onActivityCreated : isVip=" + isVip );
-        
         Bundle args = new Bundle();
-        args.putInt( "VIP", ( isVip ? 1 : 0 ) );
+        args.putInt( "VIP", ( mainApplication.isVIP() ? 1 : 0 ) );
         
 		getLoaderManager().initLoader( 0, args, this );
 		 
@@ -219,10 +210,6 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		}
 		episodeCursor.close();
         
-		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( getActivity() );
-		downloadInProgress = sharedPref.getBoolean( DOWNLOAD_IN_PROGRESS_KEY, false );
-		downloadInProgressId = sharedPref.getLong( DOWNLOAD_IN_PROGRESS_ID_KEY, -1 );
-		
 		Log.v( TAG, "onResume : exit" );
 	}
 	
@@ -266,28 +253,13 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 
 	// internal helpers
 
-	private static class DownloadHandler extends Handler {
-		private final WeakReference<EpisodesFragment> mFragment;
-		
-		DownloadHandler( EpisodesFragment fragment ) {
-			mFragment = new WeakReference<EpisodesFragment>( fragment );
-		}
+	private class DownloadHandler extends Handler {
 		
 		public void handleMessage( Message message ) {
 			
-			Object obj = message.obj;
-			if( message.arg1 == 9999 && obj != null ) {
-				EpisodesFragment parent = mFragment.get();
-				parent.updateDownloadingStatus( true, (Long) obj );
-				parent.adapter.notifyDataSetChanged();
+			if( null != getActivity() ) {
+				restartLoader();
 			}
-
-			if( message.arg1 == FragmentActivity.RESULT_OK && obj != null ) {
-				EpisodesFragment parent = mFragment.get();
-				parent.updateDownloadingStatus( false, -1 );
-				parent.adapter.notifyDataSetChanged();
-			}
-
 		};
 		
 	};
@@ -433,12 +405,12 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 					@Override
 					public void onClick( View v ) {
 						
-						if( !downloadInProgress ) {
+						if( !isDownloadInProgress() ) {
 							
 			            	Intent intent = new Intent( getActivity(), DownloadService.class );
 			                
 			            	// Create a new Messenger for the communication back
-			                Messenger messenger = new Messenger( new DownloadHandler( EpisodesFragment.this ) );
+			                Messenger messenger = new Messenger( new DownloadHandler() );
 			                intent.putExtra( "MESSENGER", messenger );
 			                intent.setData( Uri.parse( url ) );
 			                intent.putExtra( "urlpath", url );
@@ -446,8 +418,6 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 			                intent.putExtra( "directory", show );
 			                intent.putExtra( "title", title );
 			                getActivity().startService( intent );
-
-							updateDownloadingStatus( true, id );
 
 							notifyDataSetChanged();
 			                
@@ -462,11 +432,6 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
             }
 
             if( title.equalsIgnoreCase( "where are more katg shows" ) ) {
-            	mHolder.download.setVisibility( View.GONE );
-            	mHolder.delete.setVisibility( View.GONE );
-            }
-            
-            if( id == downloadInProgressId ) {
             	mHolder.download.setVisibility( View.GONE );
             	mHolder.delete.setVisibility( View.GONE );
             }
@@ -546,38 +511,23 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	private void restartLoader() {
 		Log.v( TAG, "restartLoader : enter" );
 		
-		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( getActivity() );
-        String vip = sharedPref.getString( MainApplication.KATG_RSS_FEED_VIP_KEY, "" );
-        boolean isVip = ( null != vip && !"".equals( vip ) ? true : false );
-
         Bundle args = new Bundle();
-        args.putInt( "VIP", ( isVip ? 1 : 0 ) );
+        args.putInt( "VIP", ( mainApplication.isVIP() ? 1 : 0 ) );
         
 		getLoaderManager().restartLoader( 0, args, this );
 
 		Log.v( TAG, "restartLoader : exit" );
 	}
 
-	private void updateDownloadingStatus( boolean isDownloading, long id ) {
-		Log.v( TAG, "updateDownloadingStatus : enter" );
-		
-		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( getActivity() );
-		downloadInProgress = isDownloading;
-		downloadInProgressId = id;
-		Log.v( TAG, "updateDownloadingStatus : downloadInProgress=" + downloadInProgressId );
-
-		SharedPreferences.Editor editor = sharedPref.edit();
-		editor.putBoolean( DOWNLOAD_IN_PROGRESS_KEY, isDownloading );
-    	if( downloadInProgress ) {
-    		editor.putLong( DOWNLOAD_IN_PROGRESS_ID_KEY, id );
-    	} else {
-        	editor.remove( DOWNLOAD_IN_PROGRESS_ID_KEY );
-    	}
-    	editor.commit();
-		
-    	adapter.notifyDataSetChanged();
-    	
-		Log.v( TAG, "updateDownloadingStatus : exit" );
+	private boolean isDownloadInProgress() {
+	    ActivityManager manager = (ActivityManager) getActivity().getSystemService( Context.ACTIVITY_SERVICE );
+	    for( RunningServiceInfo service : manager.getRunningServices( Integer.MAX_VALUE ) ) {
+	        if( "com.keithandthegirl.services.download.DownloadService".equals( service.service.getClassName() ) ) {
+	            return true;
+	        }
+	    }
+	    
+	    return false;
 	}
 	
 }

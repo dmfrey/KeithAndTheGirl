@@ -22,6 +22,8 @@ package com.keithandthegirl;
 import java.text.SimpleDateFormat;
 
 import android.app.Application;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
 import com.keithandthegirl.api.google.Feed;
 import com.keithandthegirl.api.guests.Guests;
@@ -159,4 +161,13 @@ public class MainApplication extends Application {
 		this.guestSort = guestSort;
 	}
 
+	public boolean isVIP() {
+		
+		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( this );
+        String vip = sharedPref.getString( MainApplication.KATG_RSS_FEED_VIP_KEY, "" );
+        
+        return ( null != vip && !"".equals( vip ) ? true : false );
+
+	}
+	
 }
