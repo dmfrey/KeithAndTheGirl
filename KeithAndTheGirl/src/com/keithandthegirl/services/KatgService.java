@@ -21,6 +21,8 @@ package com.keithandthegirl.services;
 
 import android.app.IntentService;
 import android.content.Intent;
+import android.os.Bundle;
+import android.os.ResultReceiver;
 import android.util.Log;
 
 /**
@@ -41,6 +43,9 @@ public abstract class KatgService extends IntentService {
 	public static final String SERVICE_CALLBACK = "com.keithandthegirl.services.SERVICE_CALLBACK";
 	public static final String ORIGINAL_INTENT_EXTRA = "com.keithandthegirl.services.ORIGINAL_INTENT_EXTRA";
 	
+	protected Intent mOriginalRequestIntent;
+	protected ResultReceiver mCallback;
+
 	public KatgService( String name ) {
 		super( name );
 		Log.v( TAG, "initialize : enter" );
@@ -57,6 +62,13 @@ public abstract class KatgService extends IntentService {
 		// NO OP
 		
 		Log.v( TAG, "onHandleIntent : exit" );
+	}
+
+	protected Bundle getOriginalIntentBundle() {
+		Bundle originalRequest = new Bundle();
+		originalRequest.putParcelable( ORIGINAL_INTENT_EXTRA, mOriginalRequestIntent );
+		
+		return originalRequest;
 	}
 
 }

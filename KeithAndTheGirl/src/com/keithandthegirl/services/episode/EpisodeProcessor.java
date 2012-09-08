@@ -45,7 +45,7 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.db.EpisodeConstants;
 import com.keithandthegirl.services.AbstractKatgProcessor;
-import com.keithandthegirl.services.download.DownloadService.FileType;
+import com.keithandthegirl.services.download.DownloadService.Resource;
 import com.keithandthegirl.utils.NotificationHelper;
 import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
@@ -143,7 +143,7 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 					value = value.replace( "</p>", "" );
 					value = value.replace( "\"", "" );
 		            
-					FileType fileType = null;
+					Resource fileType = null;
 					String filename = "", address = "", type = "";
 					long length = 0;
 					try {
@@ -157,7 +157,7 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 						String encFilename = address.substring( address.lastIndexOf( '/' ) + 1 );
 						if( isVip ) {
 							encFilename = encFilename.substring( 0, encFilename.indexOf( '?' ) );
-							fileType = FileType.findByExtension( encFilename.substring( encFilename.indexOf( "." ) + 1 ) );
+							fileType = Resource.findByExtension( encFilename.substring( encFilename.indexOf( "." ) + 1 ) );
 						}
 						
 			            File episodeDir = new File( root, show );
@@ -179,7 +179,7 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 					values.put( EpisodeConstants.FIELD_TITLE, title );
 					values.put( EpisodeConstants.FIELD_DESCRIPTION, value );
 					values.put( EpisodeConstants.FIELD_URL, address  );
-					values.put( EpisodeConstants.FIELD_TYPE, ( null != fileType ) ? fileType.getMimeType() : FileType.MP3.getMimeType() );
+					values.put( EpisodeConstants.FIELD_TYPE, ( null != fileType ) ? fileType.getMimeType() : Resource.MP3.getMimeType() );
 					values.put( EpisodeConstants.FIELD_LENGTH, length );
 					values.put( EpisodeConstants.FIELD_FILE, filename );
 					values.put( EpisodeConstants.FIELD_VIP, ( isVip ? 1 : 0 ) );

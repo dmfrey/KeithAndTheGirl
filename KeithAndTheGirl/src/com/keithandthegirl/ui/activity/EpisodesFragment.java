@@ -36,9 +36,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
-import android.os.Messenger;
 import android.support.v4.app.ListFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -59,8 +56,8 @@ import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
 import com.keithandthegirl.db.EpisodeConstants;
-import com.keithandthegirl.services.download.DownloadService;
-import com.keithandthegirl.services.download.DownloadService.FileType;
+import com.keithandthegirl.services.download.DownloadService.Resource;
+import com.keithandthegirl.services.download.DownloadServiceHelper;
 import com.keithandthegirl.services.episode.EpisodeServiceHelper;
 
 /**
@@ -74,8 +71,10 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 
 	private EpisodeCursorAdapter adapter;
 	private EpisodesReceiver episodesReceiver;
+	private DownloadReceiver downloadReceiver;
 	
 	private EpisodeServiceHelper mEpisodeServiceHelper;
+	private DownloadServiceHelper mDownloadServiceHelper;
 	
 	private MainApplication mainApplication;
 	
@@ -126,8 +125,6 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		Log.v( TAG, "onLoaderReset : enter" );
 		
 		adapter.swapCursor( null );
-		
-		restartLoader();
 		
 		Log.v( TAG, "onLoaderReset : exit" );
 	}
@@ -186,6 +183,15 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 			}
 		}
 		
+		if( null != downloadReceiver ) {
+			try {
+				getActivity().unregisterReceiver( downloadReceiver );
+				downloadReceiver = null;
+			} catch( IllegalArgumentException e ) {
+				Log.e( TAG, e.getLocalizedMessage(), e );
+			}
+		}
+
 		Log.v( TAG, "onPause : exit" );
 	}
 
@@ -198,13 +204,19 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		super.onResume();
 	    
 		mEpisodeServiceHelper = EpisodeServiceHelper.getInstance( getActivity() );
+		mDownloadServiceHelper = DownloadServiceHelper.getInstance( getActivity() );
 
 		IntentFilter episodeFilter = new IntentFilter( EpisodeServiceHelper.EPISODE_RESULT );
 		episodeFilter.setPriority( IntentFilter.SYSTEM_LOW_PRIORITY );
 		episodesReceiver = new EpisodesReceiver();
         getActivity().registerReceiver( episodesReceiver, episodeFilter );
 
-		Cursor episodeCursor = getActivity().getContentResolver().query( EpisodeConstants.CONTENT_URI, new String[] { EpisodeConstants._ID }, null, null, null );
+		IntentFilter downloadFilter = new IntentFilter( DownloadServiceHelper.DOWNLOAD_RESULT );
+		downloadFilter.setPriority( IntentFilter.SYSTEM_LOW_PRIORITY );
+		downloadReceiver = new DownloadReceiver();
+        getActivity().registerReceiver( downloadReceiver, downloadFilter );
+
+        Cursor episodeCursor = getActivity().getContentResolver().query( EpisodeConstants.CONTENT_URI, new String[] { EpisodeConstants._ID }, null, null, null );
 		if( episodeCursor.getCount() == 0 ) {
 			loadData();
 		}
@@ -252,17 +264,6 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	}
 
 	// internal helpers
-
-	private class DownloadHandler extends Handler {
-		
-		public void handleMessage( Message message ) {
-			
-			if( null != getActivity() ) {
-				restartLoader();
-			}
-		};
-		
-	};
 
 	private void loadData() {
 		Log.v( TAG, "loadData : enter" );
@@ -324,7 +325,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	        final long vip = getCursor().getLong( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_VIP ) );
 	        Log.v( TAG, "bindView : file=" + file + ", vip=" + vip + ", type=" + type );
 	        
-		    final FileType extension = FileType.findByMimeType( type );
+		    final Resource extension = Resource.findByMimeType( type );
 
 	        ViewHolder mHolder = (ViewHolder) view.getTag();
 			
@@ -407,20 +408,10 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 						
 						if( !isDownloadInProgress() ) {
 							
-			            	Intent intent = new Intent( getActivity(), DownloadService.class );
+			        		mDownloadServiceHelper.download( url, id, show, title, extension );
 			                
-			            	// Create a new Messenger for the communication back
-			                Messenger messenger = new Messenger( new DownloadHandler() );
-			                intent.putExtra( "MESSENGER", messenger );
-			                intent.setData( Uri.parse( url ) );
-			                intent.putExtra( "urlpath", url );
-			                intent.putExtra( "id", id );
-			                intent.putExtra( "directory", show );
-			                intent.putExtra( "title", title );
-			                getActivity().startService( intent );
-
-							notifyDataSetChanged();
-			                
+			        		v.setVisibility( View.GONE );
+			        		
 						} else {
 					    	Toast toast = Toast.makeText( mContext, "Please wait until current download finishes.", Toast.LENGTH_SHORT );
 					    	toast.show();
@@ -454,10 +445,10 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	
 	}
 	
-	private void play( PlayType type, FileType extension, Long id, String title, String description, String url, String file ) {
+	private void play( PlayType type, Resource resource, Long id, String title, String description, String url, String file ) {
 		Log.d( TAG, "play : enter" );
 		
-		switch( extension ) {
+		switch( resource ) {
 		case MP3 :
 			Log.d( TAG, "play : playing mp3" );
 			
@@ -474,7 +465,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 			Log.d( TAG, "play : playing mp4" );
 			
 			Intent mp4Activity = new Intent( Intent.ACTION_VIEW );
-			mp4Activity.setDataAndType( Uri.parse( ( null != file && !"".equals( file ) ? file : url ) ), extension.getMimeType() );
+			mp4Activity.setDataAndType( Uri.parse( ( null != file && !"".equals( file ) ? file : url ) ), resource.getMimeType() );
 			startActivity( mp4Activity );
 			
 			break;
@@ -482,7 +473,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 			Log.d( TAG, "play : playing m4v" );
 			
 			Intent m4vActivity = new Intent( Intent.ACTION_VIEW );
-			m4vActivity.setDataAndType( Uri.parse( ( null != file && !"".equals( file ) ? file : url ) ), extension.getMimeType() );
+			m4vActivity.setDataAndType( Uri.parse( ( null != file && !"".equals( file ) ? file : url ) ), resource.getMimeType() );
 			startActivity( m4vActivity );
 			
 			break;
@@ -501,22 +492,24 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		public void onReceive( Context context, Intent intent ) {
 			Log.v( TAG, "EpisodesReceiver.onReceive : enter" );
 
-			restartLoader();
+			adapter.notifyDataSetChanged();
 			
 			Log.v( TAG, "EpisodesReceiver.onReceive : exit" );
 		}
 		
 	}
 
-	private void restartLoader() {
-		Log.v( TAG, "restartLoader : enter" );
-		
-        Bundle args = new Bundle();
-        args.putInt( "VIP", ( mainApplication.isVIP() ? 1 : 0 ) );
-        
-		getLoaderManager().restartLoader( 0, args, this );
+	private class DownloadReceiver extends BroadcastReceiver {
 
-		Log.v( TAG, "restartLoader : exit" );
+		@Override
+		public void onReceive( Context context, Intent intent ) {
+			Log.v( TAG, "DownloadReceiver.onReceive : enter" );
+
+			adapter.notifyDataSetChanged();
+			
+			Log.v( TAG, "DownloadReceiver.onReceive : exit" );
+		}
+		
 	}
 
 	private boolean isDownloadInProgress() {

@@ -75,6 +75,7 @@ public class NotificationHelper {
         mNotification = new Notification( icon, tickerText, when );
 
         Intent notificationIntent = new Intent();
+        
         mContentIntent = PendingIntent.getActivity( mContext, 0, notificationIntent, 0 );
 
         mNotification.setLatestEventInfo( mContext, mContentTitle, contentText, mContentIntent );

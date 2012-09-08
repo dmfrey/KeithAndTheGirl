@@ -22,7 +22,6 @@ package com.keithandthegirl.ui.activity;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,8 +41,10 @@ import org.springframework.social.support.ClientHttpRequestFactorySelector;
 import org.springframework.web.client.RestTemplate;
 
 import android.annotation.TargetApi;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -51,10 +52,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
-import android.os.Messenger;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.ListFragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -65,7 +62,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.keithandthegirl.MainApplication;
@@ -73,7 +69,8 @@ import com.keithandthegirl.R;
 import com.keithandthegirl.api.guests.Guest;
 import com.keithandthegirl.api.guests.Guests;
 import com.keithandthegirl.api.guests.Url;
-import com.keithandthegirl.services.download.DownloadService;
+import com.keithandthegirl.services.download.DownloadService.Resource;
+import com.keithandthegirl.services.download.DownloadServiceHelper;
 import com.keithandthegirl.utils.NotificationHelper;
 import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
@@ -103,7 +100,10 @@ public class GuestsDashboardFragment extends ListFragment {
 	
 	private GuestRowAdapter adapter;
 	private Map<Integer, Bitmap> images = new TreeMap<Integer, Bitmap>();
-	
+
+	private DownloadReceiver downloadReceiver;
+	private DownloadServiceHelper mDownloadServiceHelper;
+
 	/* (non-Javadoc)
 	 * @see android.support.v4.app.Fragment#onCreate(android.os.Bundle)
 	 */
@@ -136,6 +136,26 @@ public class GuestsDashboardFragment extends ListFragment {
 	}
 	
 	/* (non-Javadoc)
+	 * @see android.support.v4.app.Fragment#onPause()
+	 */
+	@Override
+	public void onPause() {
+		Log.v( TAG, "onPause : enter" );
+		super.onPause();
+
+		if( null != downloadReceiver ) {
+			try {
+				getActivity().unregisterReceiver( downloadReceiver );
+				downloadReceiver = null;
+			} catch( IllegalArgumentException e ) {
+				Log.e( TAG, e.getLocalizedMessage(), e );
+			}
+		}
+	
+		Log.v( TAG, "onPause : exit" );
+	}
+
+	/* (non-Javadoc)
 	 * @see android.support.v4.app.Fragment#onResume()
 	 */
 	@Override
@@ -143,7 +163,14 @@ public class GuestsDashboardFragment extends ListFragment {
 		Log.v( TAG, "onResume : enter" );
 		super.onResume();
 
-		if( null != mainApplication.getGuest() ) {
+		mDownloadServiceHelper = DownloadServiceHelper.getInstance( getActivity() );
+
+		IntentFilter downloadFilter = new IntentFilter( DownloadServiceHelper.DOWNLOAD_RESULT );
+		downloadFilter.setPriority( IntentFilter.SYSTEM_LOW_PRIORITY );
+		downloadReceiver = new DownloadReceiver();
+        getActivity().registerReceiver( downloadReceiver, downloadFilter );
+
+        if( null != mainApplication.getGuest() ) {
 			Log.v( TAG, "onResume : already downloaded guest list" );
 			
 			if( null != mainApplication.getGuest().getGuests() && !mainApplication.getGuest().getGuests().isEmpty() ) {
@@ -271,25 +298,6 @@ public class GuestsDashboardFragment extends ListFragment {
 
 	// internal helpers
 	
-	private static class DownloadHandler extends Handler {
-		private final WeakReference<GuestsDashboardFragment> mFragment;
-		
-		DownloadHandler( GuestsDashboardFragment fragment ) {
-			mFragment = new WeakReference<GuestsDashboardFragment>( fragment );
-		}
-		
-		public void handleMessage( Message message ) {
-			
-			Object path = message.obj;
-			if( message.arg1 == FragmentActivity.RESULT_OK && path != null ) {
-				GuestsDashboardFragment parent = mFragment.get();
-				parent.adapter.notifyDataSetChanged();
-			}
-
-		};
-		
-	};
-
 	private void setupAdapter() {
 	    
 		getListView().invalidate();
@@ -369,7 +377,6 @@ public class GuestsDashboardFragment extends ListFragment {
 
 		        mHolder = new ViewHolder();
 		        mHolder.image = (ImageView) v.findViewById( R.id.guest_image );
-		        mHolder.details = (LinearLayout) v.findViewById( R.id.guest_details );
 		        mHolder.name = (TextView) v.findViewById( R.id.guest_name );
 		        mHolder.description = (TextView) v.findViewById( R.id.guest_description );
 		        
@@ -429,16 +436,7 @@ public class GuestsDashboardFragment extends ListFragment {
 	            } else {
 	    			//Log.v( TAG, "GuestRowAdapter.getView : image does not exist in cache dir" );
 
-	            	Intent intent = new Intent( getActivity(), DownloadService.class );
-	                
-	            	// Create a new Messenger for the communication back
-	                Messenger messenger = new Messenger( new DownloadHandler( GuestsDashboardFragment.this ) );
-	                intent.putExtra( "MESSENGER", messenger );
-	                intent.setData( Uri.parse( guest.getPictureUrl() ) );
-	                intent.putExtra( "urlpath", guest.getPictureUrl() );
-	                intent.putExtra( "directory", GUESTS_DIR );
-	                intent.putExtra( "filename", String.valueOf( guest.getShowGuestId() ) );
-	                getActivity().startService( intent );
+	                mDownloadServiceHelper.download( guest.getPictureUrl(), -1, GUESTS_DIR, String.valueOf( guest.getShowGuestId() ), Resource.JPG );
 	            }
 
 			}
@@ -525,7 +523,6 @@ public class GuestsDashboardFragment extends ListFragment {
 			
 			ImageView image;
 			
-			LinearLayout details;
 			TextView name;
 			TextView description;
 			
@@ -539,6 +536,19 @@ public class GuestsDashboardFragment extends ListFragment {
 
 	}
 	
+	private class DownloadReceiver extends BroadcastReceiver {
+
+		@Override
+		public void onReceive( Context context, Intent intent ) {
+			Log.v( TAG, "DownloadReceiver.onReceive : enter" );
+
+			adapter.notifyDataSetChanged();
+			
+			Log.v( TAG, "DownloadReceiver.onReceive : exit" );
+		}
+		
+	}
+
 	private class DownloadGuestTask extends AsyncTask<MainApplication.Sort, Void, Guests> {
 
 		@Override

@@ -35,7 +35,6 @@ import org.springframework.social.support.ClientHttpRequestFactorySelector;
 import org.springframework.web.client.RestTemplate;
 
 import android.annotation.TargetApi;
-import android.app.IntentService;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -43,16 +42,13 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Environment;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.support.v4.app.FragmentActivity;
 import android.util.FloatMath;
 import android.util.Log;
 
 import com.keithandthegirl.db.EpisodeConstants;
+import com.keithandthegirl.services.KatgService;
 import com.keithandthegirl.utils.NotificationHelper;
 import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
@@ -60,18 +56,11 @@ import com.keithandthegirl.utils.NotificationHelper.NotificationType;
  * @author Daniel Frey
  *
  */
-public class DownloadService extends IntentService {
+public class DownloadService extends KatgService {
 
 	private static final String TAG = DownloadService.class.getSimpleName();
 	
-	private int result = FragmentActivity.RESULT_CANCELED;
-
-	private NotificationHelper mNotificationHelper;
-	
-	private RestTemplate template = new RestTemplate( true, ClientHttpRequestFactorySelector.getRequestFactory() );
-	private HttpEntity<?> entity;
-	
-	public enum FileType{
+	public static enum Resource {
 		MP3( "mp3", "audio/mpeg" ),
 		MP4( "mp4", "video/mp4" ),
 		M4V( "m4v", "video/x-m4v" ),
@@ -80,7 +69,7 @@ public class DownloadService extends IntentService {
 		private String extension;
 		private String mimeType;
 		
-		FileType( String extension, String mimeType ) {
+		Resource( String extension, String mimeType ) {
 			this.extension = extension;
 			this.mimeType = mimeType;
 		}
@@ -99,22 +88,22 @@ public class DownloadService extends IntentService {
 			return mimeType;
 		}
 		
-		public static FileType findByExtension( String value ) {
+		public static Resource findByExtension( String value ) {
 			
-			for( FileType fileType : FileType.values() ) {
-				if( fileType.getExtension().equals( value ) ) {
-					return fileType;
+			for( Resource resource : Resource.values() ) {
+				if( resource.getExtension().equals( value ) ) {
+					return resource;
 				}
 			}
 			
 			return null;
 		}
 		
-		public static FileType findByMimeType( String value ) {
+		public static Resource findByMimeType( String value ) {
 			
-			for( FileType fileType : FileType.values() ) {
-				if( fileType.getMimeType().equals( value ) ) {
-					return fileType;
+			for( Resource resource : Resource.values() ) {
+				if( resource.getMimeType().equals( value ) ) {
+					return resource;
 				}
 			}
 			
@@ -122,6 +111,13 @@ public class DownloadService extends IntentService {
 		}
 
 	}
+	
+	private int result = FragmentActivity.RESULT_CANCELED;
+
+	private NotificationHelper mNotificationHelper;
+	
+	private RestTemplate template = new RestTemplate( true, ClientHttpRequestFactorySelector.getRequestFactory() );
+	private HttpEntity<?> entity;
 	
 	public DownloadService() {
 		super( "DownloadService" );
@@ -137,22 +133,25 @@ public class DownloadService extends IntentService {
 	 */
 	@TargetApi( 8 )
 	@Override
-	protected void onHandleIntent( Intent intent ) {
+	protected void onHandleIntent( Intent requestIntent ) {
 		Log.v( TAG, "onHandleIntent : enter" );
 		
 		mNotificationHelper = new NotificationHelper( this );
 
-		Uri data = intent.getData();
-	    String urlPath = intent.getStringExtra( "urlpath" );
-	    String directory = intent.getStringExtra( "directory" );
+		mOriginalRequestIntent = requestIntent;
+		
+		Resource resourceType = Resource.valueOf( requestIntent.getStringExtra( RESOURCE_TYPE_EXTRA ) );
+		mCallback = requestIntent.getParcelableExtra( SERVICE_CALLBACK );
+
+		Uri data = requestIntent.getData();
+	    String urlPath = requestIntent.getStringExtra( "urlpath" );
+	    String directory = requestIntent.getStringExtra( "directory" );
 	    
 	    String filename = data.getLastPathSegment();
-	    Log.v( TAG, "onHandleIntent : filename=" + filename );
-	    FileType extension = FileType.findByExtension( filename.substring( filename.lastIndexOf( '.' ) + 1 ) );
 	    
         File root;
         if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
-    	    switch( extension ) {
+    	    switch( resourceType ) {
     	    case MP3 :
     	    	root = Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_PODCASTS );
     	    	
@@ -167,7 +166,7 @@ public class DownloadService extends IntentService {
     	    	break;
     	    case JPG :
     	    	root = getExternalCacheDir();
-    	    	filename = intent.getStringExtra( "filename" ) + ".jpg";
+    	    	filename = requestIntent.getStringExtra( "filename" ) + ".jpg";
     	    	
     	    	break;
     	    default :
@@ -186,97 +185,56 @@ public class DownloadService extends IntentService {
 	    if( output.exists() ) {
 	    	result = FragmentActivity.RESULT_OK;
 	    	
-	    	sendMessage( intent, output );
+		    mCallback.send( result, getOriginalIntentBundle() );
 
 	    	Log.v( TAG, "onHandleIntent : exit, image exists" );
 	    	return;
 	    }
 
-	    switch( extension ) {
+	    switch( resourceType ) {
 	    case MP3 :
 			Log.v( TAG, "onHandleIntent : saving mp3" );
 	    	
-			result = 9999;
-			sendDownloadingMessage( intent, intent.getLongExtra( "id", -1 ) );
-			savePodcast( intent.getLongExtra( "id", -1 ), intent.getStringExtra( "title" ), urlPath, output );
+			savePodcast( requestIntent.getLongExtra( "id", -1 ), requestIntent.getStringExtra( "title" ), urlPath, output );
+		    mCallback.send( result, getOriginalIntentBundle() );
 		    
 	    	break;
 	    	
 	    case MP4 :
 			Log.v( TAG, "onHandleIntent : saving mp4" );
 	    	
-			result = 9999;
-			sendDownloadingMessage( intent, intent.getLongExtra( "id", -1 ) );
-	    	savePodcast( intent.getLongExtra( "id", -1 ), intent.getStringExtra( "title" ), urlPath, output );
+	    	savePodcast( requestIntent.getLongExtra( "id", -1 ), requestIntent.getStringExtra( "title" ), urlPath, output );
+		    mCallback.send( result, getOriginalIntentBundle() );
 		    
 	    	break;
 	    	
 	    case M4V :
 			Log.v( TAG, "onHandleIntent : saving m4v" );
 
-			result = 9999;
-			sendDownloadingMessage( intent, intent.getLongExtra( "id", -1 ) );
-	    	savePodcast( intent.getLongExtra( "id", -1 ), intent.getStringExtra( "title" ), urlPath, output );
+	    	savePodcast( requestIntent.getLongExtra( "id", -1 ), requestIntent.getStringExtra( "title" ), urlPath, output );
+		    mCallback.send( result, getOriginalIntentBundle() );
 		    
 	    	break;
 	    	
 	    case JPG :
 			Log.v( TAG, "onHandleIntent : saving jpg" );
 
-	    	saveBitmap( intent.getStringExtra( "filename" ), urlPath, output );
+	    	saveBitmap( requestIntent.getStringExtra( "filename" ), urlPath, output );
+		    mCallback.send( result, getOriginalIntentBundle() );
 		    
 	    	break;
 	    default:
-			Log.w( TAG, "onHandleIntent : unknown extension '" + extension.getExtension() + "'" );
+			Log.w( TAG, "onHandleIntent : unknown extension '" + resourceType.getExtension() + "'" );
 
+		    mCallback.send( REQUEST_INVALID, getOriginalIntentBundle() );
 	    	break;
 	    }
-
-	    sendMessage( intent, output );
-
+	    
 	    Log.v( TAG, "onHandleIntent : exit" );
 	}
 
 	// internal helpers
 	
-	private void sendMessage( Intent intent, File output ) {
-		
-	    Bundle extras = intent.getExtras();
-	    if( null != extras ) {
-
-	    	Messenger messenger = (Messenger) extras.get( "MESSENGER" );
-	    	Message msg = Message.obtain();
-	    	msg.arg1 = result;
-	    	msg.obj = output.getAbsolutePath();
-	    	try {
-	    		messenger.send( msg );
-	    	} catch ( RemoteException e ) {
-	    		Log.w( TAG, "Exception sending message", e );
-	    	}
-
-	    }
-
-	}
-	
-	private void sendDownloadingMessage( Intent intent, Long id ) {
-		
-	    Bundle extras = intent.getExtras();
-	    if( null != extras ) {
-
-	    	Messenger messenger = (Messenger) extras.get( "MESSENGER" );
-	    	Message msg = Message.obtain();
-	    	msg.arg1 = result;
-	    	msg.obj = id;
-	    	try {
-	    		messenger.send( msg );
-	    	} catch ( RemoteException e ) {
-	    		Log.w( TAG, "Exception sending message", e );
-	    	}
-
-	    }
-
-	}
-
 	private void saveBitmap( String filename, String urlPath, File output ) {
 		Log.v( TAG, "saveBitmap : enter" );
 	

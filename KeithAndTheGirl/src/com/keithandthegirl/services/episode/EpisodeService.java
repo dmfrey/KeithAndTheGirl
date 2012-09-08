@@ -20,8 +20,6 @@
 package com.keithandthegirl.services.episode;
 
 import android.content.Intent;
-import android.os.Bundle;
-import android.os.ResultReceiver;
 import android.util.Log;
 
 import com.keithandthegirl.services.KatgService;
@@ -36,9 +34,6 @@ public class EpisodeService extends KatgService {
 	protected static final String TAG = EpisodeService.class.getSimpleName();
 
 	public static enum Resource { EPISODE_LISTS };
-
-	private Intent mOriginalRequestIntent;
-	private ResultReceiver mCallback;
 
 	public EpisodeService() {
 		super( "DvrService" );
@@ -79,13 +74,6 @@ public class EpisodeService extends KatgService {
 		}
 
 		Log.v( TAG, "onHandleIntent : exit" );
-	}
-
-	protected Bundle getOriginalIntentBundle() {
-		Bundle originalRequest = new Bundle();
-		originalRequest.putParcelable( ORIGINAL_INTENT_EXTRA, mOriginalRequestIntent );
-		
-		return originalRequest;
 	}
 
 	// internal helpers
