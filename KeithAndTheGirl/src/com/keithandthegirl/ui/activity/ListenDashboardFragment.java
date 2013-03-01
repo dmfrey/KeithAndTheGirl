@@ -71,7 +71,10 @@ public class ListenDashboardFragment extends Fragment {
 				Log.v( TAG, "live.onClick : enter" );
 
 				Intent intent = new Intent( getActivity(), PlayerActivity.class );
-				intent.putExtra( "PLAY_TYPE", PlayType.LIVE.name() );
+				intent.putExtra( PlayerActivity.PLAY_TYPE, PlayType.LIVE.name() );
+				intent.putExtra( PlayerActivity.PLAYBACK_URL, MainApplication.KATG_LIVE_STREAM );
+				intent.putExtra( PlayerActivity.TITLE, getResources().getString( R.string.app_name ) );
+				intent.putExtra( PlayerActivity.DESCRIPTION, "KATG is Streaming Live!" );
 				
 				startActivity( intent );
 				

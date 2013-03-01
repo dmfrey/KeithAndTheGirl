@@ -436,7 +436,7 @@ public class GuestsDashboardFragment extends ListFragment {
 	            } else {
 	    			//Log.v( TAG, "GuestRowAdapter.getView : image does not exist in cache dir" );
 
-	                mDownloadServiceHelper.download( guest.getPictureUrl(), -1, GUESTS_DIR, String.valueOf( guest.getShowGuestId() ), Resource.JPG );
+	                mDownloadServiceHelper.download( guest.getPictureUrl(), guest.getShowGuestId(), GUESTS_DIR, String.valueOf( guest.getShowGuestId() ), Resource.JPG );
 	            }
 
 			}

@@ -55,7 +55,7 @@
 		
 		<service 
 		    android:enabled="true" 
-		    android:name=".services.MediaPlayerService" />
+		    android:name=".services.playback.MediaPlayerService" />
 		
 		<service 
 		    android:enabled="true" 

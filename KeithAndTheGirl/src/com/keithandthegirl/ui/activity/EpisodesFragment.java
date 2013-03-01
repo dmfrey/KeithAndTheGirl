@@ -26,16 +26,19 @@ import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.IBinder;
 import android.support.v4.app.ListFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -48,7 +51,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -56,18 +63,23 @@ import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
 import com.keithandthegirl.db.EpisodeConstants;
+import com.keithandthegirl.db.EpisodeConstants.Show;
 import com.keithandthegirl.services.download.DownloadService.Resource;
 import com.keithandthegirl.services.download.DownloadServiceHelper;
 import com.keithandthegirl.services.episode.EpisodeServiceHelper;
+import com.keithandthegirl.services.playback.IMediaPlayerServiceClient;
+import com.keithandthegirl.services.playback.MediaPlayerService;
+import com.keithandthegirl.services.playback.MediaPlayerService.MediaPlayerBinder;
+import com.keithandthegirl.services.playback.StatefulMediaPlayer;
+import com.keithandthegirl.services.playback.StreamStation;
 
 /**
  * @author Daniel Frey
  *
  */
-public class EpisodesFragment extends ListFragment implements LoaderManager.LoaderCallbacks<Cursor> {
+public class EpisodesFragment extends ListFragment implements LoaderManager.LoaderCallbacks<Cursor>, IMediaPlayerServiceClient {
 
 	private static final String TAG = EpisodesFragment.class.getSimpleName();
-	private static final int REFRESH_ID = Menu.FIRST + 30;
 
 	private EpisodeCursorAdapter adapter;
 	private EpisodesReceiver episodesReceiver;
@@ -76,8 +88,15 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	private EpisodeServiceHelper mEpisodeServiceHelper;
 	private DownloadServiceHelper mDownloadServiceHelper;
 	
+	private MenuItem mSpinnerItem; //, mPlayer;
+	
 	private MainApplication mainApplication;
 	
+	private StatefulMediaPlayer mMediaPlayer;
+	private StreamStation mSelectedStream = null;
+	private MediaPlayerService mService;
+	private boolean mBound;
+
 	/* (non-Javadoc)
 	 * @see android.support.v4.app.LoaderManager.LoaderCallbacks#onCreateLoader(int, android.os.Bundle)
 	 */
@@ -87,17 +106,31 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		
 		int vip = args.getInt( "VIP" );
 		
-		String selection = EpisodeConstants.FIELD_VIP + " = ? OR (" + EpisodeConstants.FIELD_VIP + " = ? AND " + EpisodeConstants.FIELD_FILE + " != ?)";
+		String selection = "(" + EpisodeConstants.FIELD_VIP + " = ? OR (" + EpisodeConstants.FIELD_VIP + " = ? AND " + EpisodeConstants.FIELD_FILE + " != ?))";
 		String[] selectionArgs = new String[] { "0", "1", "" };
 
 		if( vip == 1 ) {
+			Log.v( TAG, "onCreateLoader : removing non-VIP criteria" );
+			
 			selection = null;
 			selectionArgs = null;
 		}
 		
+		if( args.containsKey( "SHOW_KEY" ) ) {
+			if( null != selection ) {
+				selection += " AND ";
+			} else {
+				selection = "";
+			}
+			
+			selection += EpisodeConstants.FIELD_SHOW_KEY + " = '" + args.getString( "SHOW_KEY" ) + "'";
+		}
+		
 		String sortOrder = EpisodeConstants.FIELD_PUBLISH_DATE + " DESC";
 		
-	    CursorLoader cursorLoader = new CursorLoader( getActivity(), EpisodeConstants.CONTENT_URI, null, selection, selectionArgs, sortOrder );
+		Log.v( TAG, "onCreateLoader : selection=" + selection );
+
+		CursorLoader cursorLoader = new CursorLoader( getActivity(), EpisodeConstants.CONTENT_URI, null, selection, selectionArgs, sortOrder );
 		
 	    Log.v( TAG, "onCreateLoader : exit" );
 		return cursorLoader;
@@ -192,16 +225,23 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 			}
 		}
 
+		if( mBound ) {
+			getActivity().unbindService( mConnection );
+		}
+		
 		Log.v( TAG, "onPause : exit" );
 	}
 
 	/* (non-Javadoc)
 	 * @see android.support.v4.app.Fragment#onResume()
 	 */
+	@TargetApi( 11 )
 	@Override
 	public void onResume() {
 		Log.v( TAG, "onResume : enter" );
 		super.onResume();
+	    
+	    bindToService();
 	    
 		mEpisodeServiceHelper = EpisodeServiceHelper.getInstance( getActivity() );
 		mDownloadServiceHelper = DownloadServiceHelper.getInstance( getActivity() );
@@ -212,7 +252,6 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
         getActivity().registerReceiver( episodesReceiver, episodeFilter );
 
 		IntentFilter downloadFilter = new IntentFilter( DownloadServiceHelper.DOWNLOAD_RESULT );
-		downloadFilter.setPriority( IntentFilter.SYSTEM_LOW_PRIORITY );
 		downloadReceiver = new DownloadReceiver();
         getActivity().registerReceiver( downloadReceiver, downloadFilter );
 
@@ -221,7 +260,37 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 			loadData();
 		}
 		episodeCursor.close();
-        
+		
+		if( mainApplication.isVIP() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+			View view = mSpinnerItem.getActionView();
+			view.setVisibility( View.VISIBLE );
+			if( view instanceof Spinner ) {
+				final Spinner spinner = (Spinner) view;
+				spinner.setAdapter( new ArrayAdapter<String>( getActivity(), android.R.layout.simple_spinner_dropdown_item, Show.getKeys() ) );
+				spinner.setOnItemSelectedListener( new OnItemSelectedListener() {
+		            
+					public void onItemSelected( AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+		                String selected = (String) spinner.getSelectedItem();
+
+		                Show show = Show.findByKey( selected );
+		                restartLoader( show );
+					}
+		 
+		            public void onNothingSelected( AdapterView<?> arg0 ) {}
+		            
+		        });
+			}
+		}
+		
+		if( mBound ) {
+			Log.v( TAG, "onResume : service is bound" );
+
+			mMediaPlayer = mService.getMediaPlayer();
+			mSelectedStream = mMediaPlayer.getStreamStation();
+			
+			adapter.notifyDataSetChanged();
+		}
+		
 		Log.v( TAG, "onResume : exit" );
 	}
 	
@@ -234,11 +303,22 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		Log.v( TAG, "onCreateOptionsMenu : enter" );
 		super.onCreateOptionsMenu( menu, inflater );
 
-		MenuItem refresh = menu.add( Menu.NONE, REFRESH_ID, Menu.NONE, "Refresh" );
-		refresh.setIcon( android.R.drawable.ic_popup_sync );
-	    if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
-	    	refresh.setShowAsAction( MenuItem.SHOW_AS_ACTION_IF_ROOM );
-	    }
+		inflater.inflate( R.menu.fragment_episodes_menu, menu );
+		if( mainApplication.isVIP() ) {
+			mSpinnerItem = menu.findItem( R.id.episodes_show );
+			if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
+				mSpinnerItem.setVisible( true );
+			} else {
+				mSpinnerItem.setVisible( false );
+			}
+		}
+		
+//		mPlayer = menu.findItem( R.id.episodes_player );
+//		if( MediaPlayerServiceRunning() ) {
+//			mPlayer.setVisible( true );
+//		} else {
+//			mPlayer.setVisible( false );
+//		}
 		
 		Log.v( TAG, "onCreateOptionsMenu : exit" );
 	}
@@ -250,13 +330,33 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	public boolean onOptionsItemSelected( MenuItem item ) {
 		Log.v( TAG, "onOptionsItemSelected : enter" );
 		
+		Log.d( TAG, "onOptionsItemSelected : item=" + item.toString() );
+		
 		switch( item.getItemId() ) {
-		case REFRESH_ID:
+		case R.id.episodes_refresh:
 			Log.d( TAG, "onOptionsItemSelected : refresh selected" );
 
 			loadData();
 		    
 	        return true;
+//		case R.id.episodes_player:
+//			Log.d( TAG, "onOptionsItemSelected : player selected" );
+//
+//			if( mBound ) {
+//				mMediaPlayer = mService.getMediaPlayer(); 
+//				mSelectedStream = mMediaPlayer.getStreamStation();
+//				
+//				Intent playerActivity = new Intent( getActivity(), PlayerActivity.class );
+//				playerActivity.putExtra( PlayerActivity.PLAY_TYPE, mSelectedStream.getStationPlayType() );
+//				playerActivity.putExtra( PlayerActivity.PLAYBACK_URL, mSelectedStream.getStationUrl() );
+//				playerActivity.putExtra( PlayerActivity.TITLE, mSelectedStream.getStationLabel() );
+//				playerActivity.putExtra( PlayerActivity.DESCRIPTION, mSelectedStream.getmStationDescription() );
+//				
+//				startActivity( playerActivity );
+//
+//			}
+//			
+//	        return true;
 		}
 		
 		Log.v( TAG, "onOptionsItemSelected : exit" );
@@ -315,7 +415,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	        Log.v( TAG, "bindView : enter" );
 
 	        final long id = getCursor().getLong( getCursor().getColumnIndexOrThrow( EpisodeConstants._ID ) );
-	        final String show = getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_SHOW ) );
+	        final String showKey = getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_SHOW_KEY ) );
 	        final String title = getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_TITLE ) );
 	        final String description = cursor.getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_DESCRIPTION ) );
 	        final Date date = new Date( getCursor().getLong( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_PUBLISH_DATE ) ) );
@@ -323,7 +423,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	        final String type = getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_TYPE ) );
 	        final String file = null != getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_FILE ) ) ? getCursor().getString( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_FILE ) ) : "";
 	        final long vip = getCursor().getLong( getCursor().getColumnIndexOrThrow( EpisodeConstants.FIELD_VIP ) );
-	        Log.v( TAG, "bindView : file=" + file + ", vip=" + vip + ", type=" + type );
+	        Log.v( TAG, "bindView : title=" + title + ", file=" + file + ", vip=" + vip + ", type=" + type );
 	        
 		    final Resource extension = Resource.findByMimeType( type );
 
@@ -338,12 +438,41 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 				@Override
 				public void onClick( View v ) {
 
-					play( PlayType.RECORDED, extension, id, title, description, url, file );
+					boolean shouldReset = false;
+					if( mBound ) {
+						
+			        	mMediaPlayer = mService.getMediaPlayer();
+			        	mSelectedStream = mMediaPlayer.getStreamStation();
+			        	
+			        	if( !mMediaPlayer.isPlaying() ) {
+			        		shouldReset = true;
+			        	}
+			        }
+					
+					play( PlayType.RECORDED, extension, id, title, description, url, file, shouldReset );
 
 				}
 				
 			});
 
+	        if( mBound ) {
+	        	
+	        	mMediaPlayer = mService.getMediaPlayer();
+	        	mSelectedStream = mMediaPlayer.getStreamStation();
+	        	
+	        	if( mMediaPlayer.isPlaying() && null != mSelectedStream ) {
+	        		if( title.equals( mSelectedStream.getStationLabel() ) ) {
+	        			mHolder.play.setVisibility( View.VISIBLE );
+	        		} else {
+	        			mHolder.play.setVisibility( View.GONE );
+	        		}
+	        	} else {
+	        		mHolder.play.setVisibility( View.VISIBLE );
+	        	}
+	        } else {
+	        	mHolder.play.setVisibility( View.VISIBLE );
+	        }
+	        
             File root;
             if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ) {
         	    switch( extension ) {
@@ -368,7 +497,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
             	root = Environment.getExternalStorageDirectory();
             }
             
-            File episodeDir = new File( root, show );
+            File episodeDir = new File( root, showKey );
             episodeDir.mkdirs();
             
             if( !"".equals( file ) ) {
@@ -408,7 +537,7 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 						
 						if( !isDownloadInProgress() ) {
 							
-			        		mDownloadServiceHelper.download( url, id, show, title, extension );
+			        		mDownloadServiceHelper.download( url, id, showKey, title, extension );
 			                
 			        		v.setVisibility( View.GONE );
 			        		
@@ -445,18 +574,24 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	
 	}
 	
-	private void play( PlayType type, Resource resource, Long id, String title, String description, String url, String file ) {
+	private void play( PlayType type, Resource resource, Long id, String title, String description, String url, String file, boolean shouldReset ) {
 		Log.d( TAG, "play : enter" );
+		
+		if( mBound ) {
+			if( shouldReset ) {
+				mMediaPlayer.reset();
+			}
+		}
 		
 		switch( resource ) {
 		case MP3 :
 			Log.d( TAG, "play : playing mp3" );
 			
 			Intent mp3Activity = new Intent( getActivity(), PlayerActivity.class );
-			mp3Activity.putExtra( "PLAY_TYPE", type.name() );
-			mp3Activity.putExtra( "EPISODE", id );
-			mp3Activity.putExtra( "TITLE", title );
-			mp3Activity.putExtra( "DESCRIPTION", description );
+			mp3Activity.putExtra( PlayerActivity.PLAY_TYPE, type.name() );
+			mp3Activity.putExtra( PlayerActivity.PLAYBACK_URL, ( null != file && !"".equals( file ) ? file : url ) );
+			mp3Activity.putExtra( PlayerActivity.TITLE, title );
+			mp3Activity.putExtra( PlayerActivity.DESCRIPTION, description );
 			
 			startActivity( mp3Activity );
 			
@@ -486,12 +621,29 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		Log.d( TAG, "play : exit" );
 	}
 
+	private void restartLoader( Show show ) {
+		Log.d( TAG, "restartLoader : enter" );
+		
+		Bundle args = new Bundle();
+        args.putInt( "VIP", ( mainApplication.isVIP() ? 1 : 0 ) );
+		args.putString( "SHOW_KEY", show.getKey() );
+		
+		getLoaderManager().restartLoader( 0, args, this );
+		
+		Log.d( TAG, "restartLoader : exit" );
+	}
+	
 	private class EpisodesReceiver extends BroadcastReceiver {
 
 		@Override
 		public void onReceive( Context context, Intent intent ) {
 			Log.v( TAG, "EpisodesReceiver.onReceive : enter" );
 
+			if( mBound ) {
+				mMediaPlayer = mService.getMediaPlayer();
+				mSelectedStream = mMediaPlayer.getStreamStation();
+			}
+			
 			adapter.notifyDataSetChanged();
 			
 			Log.v( TAG, "EpisodesReceiver.onReceive : exit" );
@@ -504,6 +656,11 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		@Override
 		public void onReceive( Context context, Intent intent ) {
 			Log.v( TAG, "DownloadReceiver.onReceive : enter" );
+
+			if( mBound ) {
+				mMediaPlayer = mService.getMediaPlayer();
+				mSelectedStream = mMediaPlayer.getStreamStation();
+			}
 
 			adapter.notifyDataSetChanged();
 			
@@ -523,4 +680,120 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 	    return false;
 	}
 	
+	/**
+	 * Binds to the instance of MediaPlayerService. If no instance of
+	 * MediaPlayerService exists, it first starts a new instance of the service.
+	 */
+	private void bindToService() {
+		Log.v( TAG, "bindToService : enter" );
+
+		Intent intent = new Intent( getActivity(), MediaPlayerService.class );
+
+		if( MediaPlayerServiceRunning() ) {
+			Log.i( TAG, "bindToService : MediaPlayerServices is running" );
+
+			// Bind to LocalService
+			getActivity().bindService( intent, mConnection, Context.BIND_AUTO_CREATE );
+		}
+
+		Log.v( TAG, "bindToService : exit" );
+	}
+
+	/**
+	 * Defines callbacks for service binding, passed to bindService()
+	 */
+	private ServiceConnection mConnection = new ServiceConnection() {
+
+		@Override
+		public void onServiceConnected( ComponentName className, IBinder serviceBinder ) {
+			Log.d( TAG, "onServiceConnected : enter" );
+
+			// bound with Service. get Service instance
+			MediaPlayerBinder binder = (MediaPlayerBinder) serviceBinder;
+			mService = binder.getService();
+
+			// send this instance to the service, so it can make callbacks on
+			// this instance as a client
+			mService.setClient( EpisodesFragment.this );
+			mBound = true;
+			Log.i( TAG, "onServiceConnected : service connected" );
+
+			Log.d( TAG, "onServiceConnected : exit" );
+		}
+
+		@Override
+		public void onServiceDisconnected( ComponentName arg0 ) {
+			mBound = false;
+		}
+	
+	};
+
+	/**
+	 * Determines if the MediaPlayerService is already running.
+	 * 
+	 * @return true if the service is running, false otherwise.
+	 */
+	private boolean MediaPlayerServiceRunning() {
+		//Log.v( TAG, "MediaPlayerServiceRunning : enter" );
+
+		ActivityManager manager = (ActivityManager) getActivity().getSystemService( Context.ACTIVITY_SERVICE );
+
+		for( RunningServiceInfo service : manager.getRunningServices( Integer.MAX_VALUE ) ) {
+			//Log.v( TAG, "MediaPlayerServiceRunning : service=" + service.service.getClassName() );
+
+			if( "com.keithandthegirl.services.playback.MediaPlayerService".equals( service.service.getClassName() ) ) {
+
+				//Log.v( TAG, "MediaPlayerServiceRunning : exit, MediaPlayerService is running" );
+				return true;
+			}
+		}
+
+		//Log.v( TAG, "MediaPlayerServiceRunning : exit, MediaPlayerService is NOT running" );
+		return false;
+	}
+
+	public void onInitializePlayerSuccess() {
+		Log.v( TAG, "onInitializePlayerSuccess : enter" );
+
+		if( mBound ) {
+			//mPlayer.setVisible( true );
+
+			mMediaPlayer = mService.getMediaPlayer();
+			mSelectedStream = mMediaPlayer.getStreamStation();
+
+			adapter.notifyDataSetChanged();
+		}
+		
+		Log.v( TAG, "onInitializePlayerSuccess : exit" );
+	}
+
+	public void onInitializePlayerStart( String message ) {
+		Log.v( TAG, "onInitializePlayerStart : enter" );
+
+		if( mBound ) {
+			//mPlayer.setVisible( true );
+
+			mMediaPlayer = mService.getMediaPlayer();
+			mSelectedStream = mMediaPlayer.getStreamStation();
+
+        	adapter.notifyDataSetChanged();
+		}
+		
+        Log.v( TAG, "onInitializePlayerStart : exit" );
+	}
+
+	@Override
+	public void onError() {
+	
+		if( mBound ) {
+			//mPlayer.setVisible( false );
+
+			mMediaPlayer = mService.getMediaPlayer();
+			mSelectedStream = mMediaPlayer.getStreamStation();
+
+        	adapter.notifyDataSetChanged();
+		}
+
+	}
+
 }

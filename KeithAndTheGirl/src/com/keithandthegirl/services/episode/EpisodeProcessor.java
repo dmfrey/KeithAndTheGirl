@@ -94,7 +94,7 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
             if( isVip ) {
             	address = MainApplication.KATG_RSS_FEED_VIP + "?a=" + vip;
             }
-            Log.v( TAG, "getEpisodes : rss address=" + address );
+            //Log.v( TAG, "getEpisodes : rss address=" + address );
             
             FeedFetcherCache feedInfoCache = HashMapFeedInfoCache.getInstance();
             FeedFetcher feedFetcher = new HttpURLFeedFetcher( feedInfoCache );
@@ -130,13 +130,15 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
                 	root = Environment.getExternalStorageDirectory();
                 }
 	            
-	            Log.v( TAG, "processFeed : feed entries downloaded=" + feed.getEntries().size() );
+	            //Log.v( TAG, "processFeed : feed entries downloaded=" + feed.getEntries().size() );
 				for( SyndEntry entry : (List<SyndEntry>) feed.getEntries() ) {
-					Log.v( TAG, "processFeed : feed entry iteration" );
+					//Log.v( TAG, "processFeed : feed entry iteration" );
 					
 					String title = entry.getTitle();
 
 					String show = generateShowName( title );
+					String showKey = generateShowKey( title );
+					//Log.v( TAG, "processFeed : show=" + show + ", showKey=" + showKey );
 					
 					String value = entry.getDescription().getValue();
 					value = value.replace( "<p>", "" );
@@ -152,7 +154,7 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 						address = enc.getUrl();
 						type = enc.getType();
 						length = enc.getLength();
-						Log.d( TAG, "processFeed : enc=[ address=" + address + ", type=" + type + ", length=" + length + "]" );
+						//Log.d( TAG, "processFeed : enc=[ address=" + address + ", type=" + type + ", length=" + length + "]" );
 						
 						String encFilename = address.substring( address.lastIndexOf( '/' ) + 1 );
 						if( isVip ) {
@@ -167,7 +169,7 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 						if( f.exists() ) {
 							filename = f.getAbsolutePath();
 
-							Log.d( TAG, "processFeed : filename=" + filename );
+							//Log.d( TAG, "processFeed : filename=" + filename );
 						}
 					} catch( Exception e ) {
 						Log.w( TAG, "processFeed : episode '" + title + "' could not be processed", e );
@@ -175,6 +177,7 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 					
 					ContentValues values = new ContentValues();
 					values.put( EpisodeConstants.FIELD_SHOW, show );
+					values.put( EpisodeConstants.FIELD_SHOW_KEY, showKey );
 					values.put( EpisodeConstants.FIELD_PUBLISH_DATE, entry.getPublishedDate().getTime() );
 					values.put( EpisodeConstants.FIELD_TITLE, title );
 					values.put( EpisodeConstants.FIELD_DESCRIPTION, value );
@@ -194,12 +197,12 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 					long episodeId;
 					Cursor cursor = mContext.getContentResolver().query( EpisodeConstants.CONTENT_URI, projection, sb.toString(), args, null );
 					if( cursor.moveToFirst() ) {
-						Log.v( TAG, "processFeed : feed entry iteration, updating existing entry" );
+						//Log.v( TAG, "processFeed : feed entry iteration, updating existing entry" );
 						
 						episodeId = cursor.getLong( cursor.getColumnIndexOrThrow( EpisodeConstants._ID ) );
 						mContext.getContentResolver().update( ContentUris.withAppendedId( EpisodeConstants.CONTENT_URI, episodeId ), values, null, null );
 					} else {
-						Log.v( TAG, "processFeed : feed entry iteration, adding new entry" );
+						//Log.v( TAG, "processFeed : feed entry iteration, adding new entry" );
 
 						Uri programUri = mContext.getContentResolver().insert( EpisodeConstants.CONTENT_URI, values );
 						episodeId = ContentUris.parseId( programUri );
@@ -219,6 +222,37 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 
 	// internal helpers
 	
+	private String generateShowKey( String title ) {
+		
+		String show = "KATG";
+		
+		if( title.startsWith( "WMN" ) ) {
+			show = "WMN";
+		}
+		
+		if( title.startsWith( "MNIK" ) ) {
+			show = "MNIK";
+		}
+
+		if( title.startsWith( "TTSWD" ) ) {
+			show = "TTSWD";
+		}
+		
+		if( title.startsWith( "INTERNment" ) ) {
+			show = "INTERNment";
+		}
+
+		if( title.startsWith( "KATGtv" ) ) {
+			show = "KATGtv";
+		}
+
+		if( title.startsWith( "Beginnings" ) ) {
+			show = "Beginnings";
+		}
+
+		return show;
+	}
+
 	private String generateShowName( String title ) {
 		
 		String show = "KATG";
@@ -241,6 +275,10 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 
 		if( title.startsWith( "KATGtv" ) ) {
 			show = "KATGtv";
+		}
+
+		if( title.startsWith( "Beginnings" ) ) {
+			show = "Beginnings";
 		}
 
 		return show;

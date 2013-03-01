@@ -19,6 +19,9 @@
  */
 package com.keithandthegirl.db;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.net.Uri;
 import android.provider.BaseColumns;
 
@@ -30,8 +33,138 @@ import com.keithandthegirl.provider.KatgProvider;
  */
 public class EpisodeConstants implements BaseColumns {
 
-	public static final String TABLE_NAME = "katg_episodes";
+	public static enum Show {
+		KATG( "KATG", "Keith And The Girl" ),
+		WMN( "WMN", "What's My Name" ),
+		MNIK( "MNIK", "My Name Is Keith" ),
+		TTSWD( "TTSWD", "That's The Show With Danny" ),
+		INTERNMENT( "INTERNment", "INTERNment" ),
+		KATG_TV( "KATGtv", "KATGtv" ),
+		BEGINNINGS( "Beginnings", "Beginnings" );
+		
+		String key;
+		
+		String showName;
+		
+		private Show( String key, String showName ) {
+			this.key = key;
+			this.showName = showName;
+		}
+
+		/**
+		 * @return the key
+		 */
+		public String getKey() {
+			return key;
+		}
+
+		/**
+		 * @return the showName
+		 */
+		public String getShowName() {
+			return showName;
+		}
+		
+		public static Show findByKey( String value ) {
+			
+			for( Show show : Show.values() ) {
+				if( show.getKey().equals( value ) ) {
+					return show;
+				}
+			}
+			
+			return null;
+		}
+		
+		public static Show findByShowName( String value ) {
+			
+			for( Show show : Show.values() ) {
+				if( show.getShowName().equals( value ) ) {
+					return show;
+				}
+			}
+			
+			return null;
+		}
+		
+		public static String[] getKeys() {
+
+			String[] array = new String[ Show.values().length ];
+			List<String> values = new ArrayList<String>( Show.values().length );
+			for( Show show : Show.values() ) {
+				values.add( show.getKey() );
+			}
+
+			return values.toArray( array );
+		}
+		
+	}
 	
+	public static enum FileType {
+		MP3( "mp3", "audio/mpeg" ),
+		MP4( "mp4", "video/mp4" ),
+		M4V( "m4v", "video/x-m4v" ),
+		JPG( "jpg", "image/jpeg" );
+		
+		private String extension;
+		private String mimeType;
+		
+		private FileType( String extension, String mimeType ) {
+			this.extension = extension;
+			this.mimeType = mimeType;
+		}
+
+		/**
+		 * @return the extension
+		 */
+		public String getExtension() {
+			return extension;
+		}
+
+		/**
+		 * @return the mimeType
+		 */
+		public String getMimeType() {
+			return mimeType;
+		}
+		
+		public static FileType findByFilename( String value ) {
+			
+			if( null != value && !"".equals( value ) ) {
+				
+				String extension = value.substring( value.lastIndexOf( '.' ) + 1 );
+				
+				return findByExtension( extension );
+			}
+			
+			return null;
+		}
+		
+		public static FileType findByExtension( String value ) {
+			
+			for( FileType fileType : FileType.values() ) {
+				if( fileType.getExtension().equals( value ) ) {
+					return fileType;
+				}
+			}
+			
+			return null;
+		}
+		
+		public static FileType findByMimeType( String value ) {
+			
+			for( FileType fileType : FileType.values() ) {
+				if( fileType.getMimeType().equals( value ) ) {
+					return fileType;
+				}
+			}
+			
+			return null;
+		}
+
+	}
+
+	public static final String TABLE_NAME = "katg_episodes";
 	public static final Uri CONTENT_URI = Uri.parse( "content://" + KatgProvider.AUTHORITY + "/" + TABLE_NAME );
 
 	// db fields
@@ -40,6 +173,9 @@ public class EpisodeConstants implements BaseColumns {
 	
 	public static final String FIELD_SHOW = "SHOW";
 	public static final String FIELD_SHOW_DATA_TYPE = "TEXT";
+
+	public static final String FIELD_SHOW_KEY = "SHOW_KEY";
+	public static final String FIELD_SHOW_KEY_DATA_TYPE = "TEXT";
 
 	public static final String FIELD_PUBLISH_DATE = "PUBLISH";
 	public static final String FIELD_PUBLISH_DATE_DATA_TYPE = "INTEGER";

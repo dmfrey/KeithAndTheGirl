@@ -62,6 +62,8 @@ public class MainApplication extends Application {
 		
 	}
 	
+	private SharedPreferences sharedPref;
+
 	private SimpleDateFormat format = new SimpleDateFormat( "yyyy-MM-dd" );
 	
 	private Feed calendarFeed;
@@ -78,7 +80,8 @@ public class MainApplication extends Application {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		
+	
+		sharedPref = PreferenceManager.getDefaultSharedPreferences( this );
 	}
 
 	
@@ -163,7 +166,6 @@ public class MainApplication extends Application {
 
 	public boolean isVIP() {
 		
-		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences( this );
         String vip = sharedPref.getString( MainApplication.KATG_RSS_FEED_VIP_KEY, "" );
         
         return ( null != vip && !"".equals( vip ) ? true : false );

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/feed_entry_context_menu_header">
+
+	<item
+		android:id="@+id/episodes_show"
+		android:title="Show"
+		android:showAsAction="ifRoom"
+		android:actionViewClass="android.widget.Spinner"
+		android:visible="false" />
+		
+	<!-- item
+		android:id="@+id/episodes_player"
+		android:title="Player"
+		android:showAsAction="always"
+		android:icon="@android:drawable/ic_media_play" / -->
+	
+	<item
+		android:id="@+id/episodes_refresh"
+		android:title="Refresh"
+		android:showAsAction="ifRoom"
+		android:icon="@android:drawable/ic_popup_sync" />
+    	
+</menu>

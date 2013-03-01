@@ -79,149 +79,21 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp" >
     	
-        <Button
-            android:id="@+id/player_stop"
+        <ImageButton
+            android:id="@+id/player_play"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/stop_label" />
+            android:src="@android:drawable/ic_media_play"
+            android:contentDescription="@string/play_label" />
         
-    </LinearLayout>
-
-    <!-- LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="20dp" >
-    	
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="100"
-            android:text="@string/player_feedback_label"
-            android:textSize="@dimen/text_size_big"
-            android:textStyle="bold" />
-        
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="5dp" >
-    	
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="100"
-            android:text="@string/player_feedback_name_label"
-            android:textSize="@dimen/text_size_small" />
-
-    </LinearLayout>
-    
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp" >
-    	
-    	<EditText
-    	    android:id="@+id/player_feedback_name"
-    	    android:layout_width="0dp"
-    	    android:layout_height="wrap_content"
-    	    android:layout_weight="144.20"
-    	    android:ems="10"
-    	    android:inputType="text"
-    	    android:maxLength="50" >
-
-        </EditText>
-        
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="5dp" >
-    	
-    	<TextView
-    	    android:layout_width="0dp"
-    	    android:layout_height="wrap_content"
-    	    android:layout_weight="100"
-    	    android:text="@string/player_feedback_location_label"
-    	    android:textSize="@dimen/text_size_small" />
-        
-     </LinearLayout>
-    
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp" >
-    	
-    	<EditText
-    	    android:id="@+id/player_feedback_location"
-    	    android:layout_width="0dp"
-    	    android:layout_height="wrap_content"
-    	    android:layout_weight="100"
-    	    android:ems="10"
-    	    android:inputType="text"
-    	    android:maxLength="50" >
-
-        </EditText>
-        
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="5dp" >
-    	
-    	<TextView
-    	    android:layout_width="0dp"
-    	    android:layout_height="wrap_content"
-    	    android:layout_weight="100"
-    	    android:text="@string/player_feedback_comment_label"
-    	    android:textSize="@dimen/text_size_small" />
-        
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp" >
-    	
-    	<EditText
-    	    android:id="@+id/player_feedback_comment"
-    	    android:layout_width="0dp"
-    	    android:layout_height="wrap_content"
-    	    android:layout_weight="100"
-    	    android:ems="10"
-    	    android:inputType="textMultiLine"
-    	    android:lines="3"
-    	    android:maxLines="5" />
-    
-    </LinearLayout>
-    	
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="5dp" >
-    	
-    	<Button
-            android:id="@+id/player_submit"
+        <ImageButton
+            android:id="@+id/player_pause"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/player_feedback_comment_label" />
+            android:src="@android:drawable/ic_media_pause"
+            android:contentDescription="@string/pause_label" />
         
-    </LinearLayout -->
+    </LinearLayout>
 
 </LinearLayout>
 

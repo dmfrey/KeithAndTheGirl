@@ -34,7 +34,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 	private static final String TAG = DatabaseHelper.class.getSimpleName();
 	
 	private static final String DATABASE_NAME = "katgdb";
-	private static final int DATABASE_VERSION = 4;
+	private static final int DATABASE_VERSION = 5;
 
 	public DatabaseHelper( Context context ) {
 		super( context, DATABASE_NAME, null, DATABASE_VERSION );
@@ -60,8 +60,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 	public void onUpgrade( SQLiteDatabase db, int oldVersion, int newVersion ) {
 		Log.v( TAG, "onUpgrade : enter" );
 
-		if( oldVersion < 4 ) {
-			Log.v( TAG, "onUpgrade : upgrading to db version 4" );
+		if( oldVersion < 5 ) {
+			Log.v( TAG, "onUpgrade : upgrading to db version 5" );
 				
 			dropKatgEpisodes( db );
 			createKatgEpisodes( db );
@@ -79,6 +79,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 		sqlBuilder.append( "CREATE TABLE " + EpisodeConstants.TABLE_NAME + " (" );
 		sqlBuilder.append( _ID ).append( " " ).append( EpisodeConstants.FIELD_ID_DATA_TYPE ).append( " " ).append( EpisodeConstants.FIELD_ID_PRIMARY_KEY ).append( ", " );
 		sqlBuilder.append( EpisodeConstants.FIELD_SHOW ).append( " " ).append( EpisodeConstants.FIELD_SHOW_DATA_TYPE ).append( ", " );
+		sqlBuilder.append( EpisodeConstants.FIELD_SHOW_KEY ).append( " " ).append( EpisodeConstants.FIELD_SHOW_KEY_DATA_TYPE ).append( ", " );
 		sqlBuilder.append( EpisodeConstants.FIELD_PUBLISH_DATE ).append( " " ).append( EpisodeConstants.FIELD_PUBLISH_DATE_DATA_TYPE ).append( ", " );
 		sqlBuilder.append( EpisodeConstants.FIELD_TITLE ).append( " " ).append( EpisodeConstants.FIELD_TITLE_DATA_TYPE ).append( ", " );
 		sqlBuilder.append( EpisodeConstants.FIELD_DESCRIPTION ).append( " " ).append( EpisodeConstants.FIELD_DESCRIPTION_DATA_TYPE ).append( ", " );

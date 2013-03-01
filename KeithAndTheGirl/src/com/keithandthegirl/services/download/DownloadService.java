@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.DecimalFormat;
 import java.util.Collections;
 
 import org.springframework.http.ContentCodingType;
@@ -35,8 +36,12 @@ import org.springframework.social.support.ClientHttpRequestFactorySelector;
 import org.springframework.web.client.RestTemplate;
 
 import android.annotation.TargetApi;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -47,10 +52,9 @@ import android.support.v4.app.FragmentActivity;
 import android.util.FloatMath;
 import android.util.Log;
 
+import com.keithandthegirl.R;
 import com.keithandthegirl.db.EpisodeConstants;
 import com.keithandthegirl.services.KatgService;
-import com.keithandthegirl.utils.NotificationHelper;
-import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 
 /**
  * @author Daniel Frey
@@ -59,6 +63,7 @@ import com.keithandthegirl.utils.NotificationHelper.NotificationType;
 public class DownloadService extends KatgService {
 
 	private static final String TAG = DownloadService.class.getSimpleName();
+	private static DecimalFormat formatter = new DecimalFormat( "###" );
 	
 	public static enum Resource {
 		MP3( "mp3", "audio/mpeg" ),
@@ -114,7 +119,11 @@ public class DownloadService extends KatgService {
 	
 	private int result = FragmentActivity.RESULT_CANCELED;
 
-	private NotificationHelper mNotificationHelper;
+	private NotificationManager mNotificationManager;
+	private Notification mNotification;
+	private PendingIntent mContentIntent;
+	private CharSequence mContentTitle;
+	private int notificationId;
 	
 	private RestTemplate template = new RestTemplate( true, ClientHttpRequestFactorySelector.getRequestFactory() );
 	private HttpEntity<?> entity;
@@ -136,7 +145,7 @@ public class DownloadService extends KatgService {
 	protected void onHandleIntent( Intent requestIntent ) {
 		Log.v( TAG, "onHandleIntent : enter" );
 		
-		mNotificationHelper = new NotificationHelper( this );
+		mNotificationManager = (NotificationManager) getSystemService( Context.NOTIFICATION_SERVICE );
 
 		mOriginalRequestIntent = requestIntent;
 		
@@ -166,7 +175,7 @@ public class DownloadService extends KatgService {
     	    	break;
     	    case JPG :
     	    	root = getExternalCacheDir();
-    	    	filename = requestIntent.getStringExtra( "filename" ) + ".jpg";
+    	    	filename = requestIntent.getLongExtra( "id", -1 ) + ".jpg";
     	    	
     	    	break;
     	    default :
@@ -270,7 +279,7 @@ public class DownloadService extends KatgService {
 	private void savePodcast( Long id, String title, String urlPath, File output ) {
 		Log.v( TAG, "savePodcast : enter" );
 
-		mNotificationHelper.createNotification( "KeithAndTheGirl", "Downloading Episode: " + title, NotificationType.DOWNLOAD );
+		sendNotification( "Downloading Episode: " + title );
 		
         URL url;
         URLConnection con;
@@ -295,7 +304,7 @@ public class DownloadService extends KatgService {
 				int percent = (int) FloatMath.ceil( ( ( 100 * (float) total ) / (float) length ) );
 				//Log.v( TAG, "savePodcast : download percent=" + percent + "%" );
 				if( percent % 5 == 0 && !notified ) {
-					mNotificationHelper.progressUpdate( percent );
+					progressUpdate( percent );
 					notified = true;
 				} else {
 					notified = false;
@@ -314,10 +323,45 @@ public class DownloadService extends KatgService {
         } catch( Exception e ) {
 			Log.e( TAG, "savePodcast : error", e );
 		} finally {
-			mNotificationHelper.completed();
+			completed();
 		}
 
 		Log.v( TAG, "savePodcast : exit" );
 	}
 	
+	@SuppressWarnings( "deprecation" )
+	private void sendNotification( String description ) {
+
+		mContentTitle = description;
+		
+		long when = System.currentTimeMillis();
+		notificationId = (int) when;
+		
+        mNotification = new Notification( android.R.drawable.stat_sys_download, getResources().getString( R.string.app_name ), when );
+
+        Intent notificationIntent = new Intent();
+        mContentIntent = PendingIntent.getActivity( this, 0, notificationIntent, 0 );
+
+        mNotification.setLatestEventInfo( this, getResources().getString( R.string.app_name ), mContentTitle, mContentIntent );
+
+        mNotification.flags = Notification.FLAG_ONGOING_EVENT;
+
+        mNotificationManager.notify( notificationId, mNotification );
+	
+	}
+	
+    @SuppressWarnings( "deprecation" )
+	public void progressUpdate( double percentageComplete ) {
+
+    	CharSequence contentText = formatter.format( percentageComplete ) + "% complete";
+
+    	mNotification.setLatestEventInfo( this, mContentTitle, contentText, mContentIntent );
+    	mNotificationManager.notify( notificationId, mNotification );
+    }
+
+    public void completed()    {
+        mNotificationManager.cancel( notificationId );
+    }
+
+
 }

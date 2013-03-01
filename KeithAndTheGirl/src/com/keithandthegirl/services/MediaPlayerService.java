@@ -21,14 +21,11 @@ package com.keithandthegirl.services;
 
 import java.io.IOException;
 
-import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.ContentUris;
 import android.content.Intent;
-import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.os.Bundle;
@@ -37,9 +34,7 @@ import android.os.IBinder;
 import android.util.Log;
 
 import com.keithandthegirl.MainApplication;
-import com.keithandthegirl.MainApplication.PlayType;
 import com.keithandthegirl.R;
-import com.keithandthegirl.db.EpisodeConstants;
 import com.keithandthegirl.ui.activity.PlayerActivity;
 
 /**
@@ -55,7 +50,6 @@ public class MediaPlayerService extends Service {
 	private Intent broadcastIntent;
 
 	private MainApplication applicationContext;
-	private PlayType currentPlayType;
 	
 	private MediaPlayer mp;
 	
@@ -108,25 +102,20 @@ public class MediaPlayerService extends Service {
 		handler.removeCallbacks( sendUpdatesToUI );
 
 		Bundle extras = intent.getExtras();
+		String playbackUrl = extras.getString( PlayerActivity.PLAYBACK_URL );
+		String title = extras.getString( PlayerActivity.TITLE );
+		String description = extras.getString( PlayerActivity.DESCRIPTION );
 		
-		currentPlayType = PlayType.valueOf( extras.getString( "PLAY_TYPE" ) );
-
 		applicationContext.setPlaying( true );
-		
-		switch( currentPlayType ) {
-			case LIVE:
-				playLive();
-				
-				break;
-			case RECORDED:
-				long id = extras.getLong( "EPISODE", -1 );
-				playRecorded( id );
 
-				break;
-			default:
-				break;
+		try {
+			start( playbackUrl );
+			
+			notify( title, description );
+		} catch( IOException e ) {
+			Log.e( TAG, e.getLocalizedMessage(), e );
 		}
-	
+		
 		Log.d( TAG, "onStart : exit" );
 	}
 
@@ -165,6 +154,8 @@ public class MediaPlayerService extends Service {
 	private void start( String url ) throws IOException {
 		Log.d( TAG, "start : enter" );
 		
+		Log.i( TAG, "start : url=" + url );
+		
 		mp.reset();
 		mp.setDataSource( url );
 		mp.prepare();
@@ -180,56 +171,6 @@ public class MediaPlayerService extends Service {
 		});
 
 		Log.d( TAG, "start : exit" );
-	}
-	
-	private void playLive() {
-		Log.d( TAG, "playLive : enter" );
-		
-		try {
-			start( MainApplication.KATG_LIVE_STREAM );
-
-			notify( "KATG Live!", "KATG is streaming live" );
-		} catch( IOException e ) {
-			Log.w( TAG, e.getMessage() );
-			
-			clearNotification();
-		}
-		
-		Log.d( TAG, "playLive : exit" );
-	}
-
-	@TargetApi( 8 )
-	private void playRecorded( long id ) {
-		Log.d( TAG, "playRecorded : enter" );
-		
-		try {
-			Cursor cursor = getContentResolver().query( ContentUris.withAppendedId( EpisodeConstants.CONTENT_URI, id), null, null, null, null );
-			if( cursor.moveToFirst() ) {
-		        final String title = cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_TITLE ) );
-		        final String description = cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_DESCRIPTION ) );
-		        final String url = cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_URL ) );
-		        final String file = null != cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_FILE ) ) ? cursor.getString( cursor.getColumnIndexOrThrow( EpisodeConstants.FIELD_FILE ) ) : "";
-
-				if( null != file && !"".equals( file ) ) {
-					Log.d( TAG, "playRecorded : play local=" + file );
-
-					start( file );
-				} else {
-					Log.d( TAG, "playRecorded : play stream" );
-
-					start( url );
-				}
-
-				notify( title, description );
-			}
-			cursor.close();
-		} catch( IOException e ) {
-			Log.w( TAG, e.getMessage() );
-
-			clearNotification();
-		}
-		
-		Log.d( TAG, "playRecorded : exit" );
 	}
 
 	@SuppressWarnings( "deprecation" )

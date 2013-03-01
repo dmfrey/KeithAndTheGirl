@@ -60,7 +60,7 @@ public class KatgProvider extends AbstractKatgContentProvider {
 	 */
 	@Override
 	public Cursor query( Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder ) {
-		Log.v( TAG, "query : enter" );
+		//Log.v( TAG, "query : enter" );
 		final SQLiteDatabase db = database.getReadableDatabase();
 		
 		Cursor cursor = null;
@@ -70,7 +70,7 @@ public class KatgProvider extends AbstractKatgContentProvider {
 				cursor = db.query( EpisodeConstants.TABLE_NAME, projection, selection, selectionArgs, null, null, sortOrder );
 				cursor.setNotificationUri( getContext().getContentResolver(), uri );
 				
-				Log.v( TAG, "query : exit, querying episodes" );
+				//Log.v( TAG, "query : exit, querying episodes" );
 				return cursor;
 	
 			case EPISODE_ID:
@@ -79,11 +79,11 @@ public class KatgProvider extends AbstractKatgContentProvider {
 				cursor = db.query( EpisodeConstants.TABLE_NAME, projection, selection, selectionArgs, null, null, sortOrder );
 				cursor.setNotificationUri( getContext().getContentResolver(), uri );
 				
-				Log.v( TAG, "query : exit, querying single episode" );
+				//Log.v( TAG, "query : exit, querying single episode" );
 				return cursor;
 	
 			default:
-				Log.w( TAG, "query : exit, unknown URI" );
+				//Log.w( TAG, "query : exit, unknown URI" );
 
 				throw new IllegalArgumentException( "Unknown URI " + uri );
 		}
@@ -117,7 +117,7 @@ public class KatgProvider extends AbstractKatgContentProvider {
 	 */
 	@Override
 	public Uri insert( Uri uri, ContentValues values ) {
-		Log.v( TAG, "insert : enter" );
+		//Log.v( TAG, "insert : enter" );
 
 		final SQLiteDatabase db = database.getWritableDatabase();
 		
@@ -129,7 +129,7 @@ public class KatgProvider extends AbstractKatgContentProvider {
 				
 				getContext().getContentResolver().notifyChange( newUri, null );
 				
-				Log.v( TAG, "insert : exit" );
+				//Log.v( TAG, "insert : exit" );
 				return newUri;
 	
 			default:
@@ -145,18 +145,18 @@ public class KatgProvider extends AbstractKatgContentProvider {
 	 */
 	@Override
 	public int delete( Uri uri, String selection, String[] selectionArgs ) {
-		Log.v( TAG, "delete : enter" );
+		//Log.v( TAG, "delete : enter" );
 
 		final SQLiteDatabase db = database.getWritableDatabase();
 		
 		switch( URI_MATCHER.match( uri ) ) {
 			case EPISODES:
-				Log.v( TAG, "delete : exit, deleting episodes" );
+				//Log.v( TAG, "delete : exit, deleting episodes" );
 
 				return db.delete( EpisodeConstants.TABLE_NAME, selection, selectionArgs );
 		
 			case EPISODE_ID:
-				Log.v( TAG, "delete : exit, deleting single episode" );
+				//Log.v( TAG, "delete : exit, deleting single episode" );
 
 				return db.delete( EpisodeConstants.TABLE_NAME, EpisodeConstants._ID
 						+ "="
@@ -176,7 +176,7 @@ public class KatgProvider extends AbstractKatgContentProvider {
 	 */
 	@Override
 	public int update( Uri uri, ContentValues values, String selection, String[] selectionArgs ) {
-		Log.v( TAG, "update : enter" );
+		//Log.v( TAG, "update : enter" );
 
 		final SQLiteDatabase db = database.getWritableDatabase();
 
@@ -188,7 +188,7 @@ public class KatgProvider extends AbstractKatgContentProvider {
 				
 				getContext().getContentResolver().notifyChange( uri, null );
 				
-				Log.v( TAG, "update : exit, updating episodes" );
+				//Log.v( TAG, "update : exit, updating episodes" );
 				return affected;
 
 			case EPISODE_ID:
@@ -198,7 +198,7 @@ public class KatgProvider extends AbstractKatgContentProvider {
 				
 				getContext().getContentResolver().notifyChange( uri, null );
 				
-				Log.v( TAG, "update : exit, updating single episode" );
+				//Log.v( TAG, "update : exit, updating single episode" );
 				return affected;
 
 			default:
