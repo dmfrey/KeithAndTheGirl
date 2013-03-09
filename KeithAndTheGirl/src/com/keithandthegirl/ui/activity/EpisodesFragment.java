@@ -261,27 +261,6 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 		}
 		episodeCursor.close();
 		
-		if( mainApplication.isVIP() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
-			View view = mSpinnerItem.getActionView();
-			view.setVisibility( View.VISIBLE );
-			if( view instanceof Spinner ) {
-				final Spinner spinner = (Spinner) view;
-				spinner.setAdapter( new ArrayAdapter<String>( getActivity(), android.R.layout.simple_spinner_dropdown_item, Show.getKeys() ) );
-				spinner.setOnItemSelectedListener( new OnItemSelectedListener() {
-		            
-					public void onItemSelected( AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-		                String selected = (String) spinner.getSelectedItem();
-
-		                Show show = Show.findByKey( selected );
-		                restartLoader( show );
-					}
-		 
-		            public void onNothingSelected( AdapterView<?> arg0 ) {}
-		            
-		        });
-			}
-		}
-		
 		if( mBound ) {
 			Log.v( TAG, "onResume : service is bound" );
 
@@ -305,9 +284,31 @@ public class EpisodesFragment extends ListFragment implements LoaderManager.Load
 
 		inflater.inflate( R.menu.fragment_episodes_menu, menu );
 		if( mainApplication.isVIP() ) {
-			mSpinnerItem = menu.findItem( R.id.episodes_show );
+			if( null == mSpinnerItem ) {
+				mSpinnerItem = menu.findItem( R.id.episodes_show );
+			}
+			
 			if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ) {
 				mSpinnerItem.setVisible( true );
+
+				View view = mSpinnerItem.getActionView();
+				view.setVisibility( View.VISIBLE );
+				if( view instanceof Spinner ) {
+					final Spinner spinner = (Spinner) view;
+					spinner.setAdapter( new ArrayAdapter<String>( getActivity(), android.R.layout.simple_spinner_dropdown_item, Show.getKeys() ) );
+					spinner.setOnItemSelectedListener( new OnItemSelectedListener() {
+
+						public void onItemSelected( AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+							String selected = (String) spinner.getSelectedItem();
+
+							Show show = Show.findByKey( selected );
+							restartLoader( show );
+						}
+
+						public void onNothingSelected( AdapterView<?> arg0 ) {}
+
+					});
+				}
 			} else {
 				mSpinnerItem.setVisible( false );
 			}

@@ -21,17 +21,21 @@ package com.keithandthegirl.services.episode;
 
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 import android.annotation.TargetApi;
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.OperationApplicationException;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
@@ -44,6 +48,8 @@ import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.
 import com.google.code.rome.android.repackaged.com.sun.syndication.fetcher.impl.HttpURLFeedFetcher;
 import com.keithandthegirl.MainApplication;
 import com.keithandthegirl.db.EpisodeConstants;
+import com.keithandthegirl.db.EpisodeConstants.Show;
+import com.keithandthegirl.provider.KatgProvider;
 import com.keithandthegirl.services.AbstractKatgProcessor;
 import com.keithandthegirl.services.download.DownloadService.Resource;
 import com.keithandthegirl.utils.NotificationHelper;
@@ -116,7 +122,7 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 	
 	@TargetApi( 8 )
 	@SuppressWarnings( "unchecked" )
-	private void processFeed( SyndFeed feed, boolean isVip ) {
+	private void processFeed( SyndFeed feed, boolean isVip ) throws RemoteException, OperationApplicationException {
 		Log.v( TAG, "processFeed : enter" );
 
 		if( null != feed ) {
@@ -130,87 +136,82 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
                 	root = Environment.getExternalStorageDirectory();
                 }
 	            
+				int count = 0, loaded = 0;
+
+				ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+				
+				String[] projection = new String[] { EpisodeConstants._ID };
+
+				StringBuilder sb = new StringBuilder();
+				sb.append( EpisodeConstants.FIELD_TITLE ).append( " = ?" );
+
 	            //Log.v( TAG, "processFeed : feed entries downloaded=" + feed.getEntries().size() );
 				for( SyndEntry entry : (List<SyndEntry>) feed.getEntries() ) {
 					//Log.v( TAG, "processFeed : feed entry iteration" );
 					
 					String title = entry.getTitle();
-
-					String show = generateShowName( title );
-					String showKey = generateShowKey( title );
-					//Log.v( TAG, "processFeed : show=" + show + ", showKey=" + showKey );
-					
-					String value = entry.getDescription().getValue();
-					value = value.replace( "<p>", "" );
-					value = value.replace( "</p>", "" );
-					value = value.replace( "\"", "" );
-		            
-					Resource fileType = null;
-					String filename = "", address = "", type = "";
-					long length = 0;
-					try {
-						SyndEnclosure enc = (SyndEnclosure) entry.getEnclosures().get( 0 );
-						
-						address = enc.getUrl();
-						type = enc.getType();
-						length = enc.getLength();
-						//Log.d( TAG, "processFeed : enc=[ address=" + address + ", type=" + type + ", length=" + length + "]" );
-						
-						String encFilename = address.substring( address.lastIndexOf( '/' ) + 1 );
-						if( isVip ) {
-							encFilename = encFilename.substring( 0, encFilename.indexOf( '?' ) );
-							fileType = Resource.findByExtension( encFilename.substring( encFilename.indexOf( "." ) + 1 ) );
-						}
-						
-			            File episodeDir = new File( root, show );
-			            episodeDir.mkdirs();
-
-						File f = new File( episodeDir, encFilename );
-						if( f.exists() ) {
-							filename = f.getAbsolutePath();
-
-							//Log.d( TAG, "processFeed : filename=" + filename );
-						}
-					} catch( Exception e ) {
-						Log.w( TAG, "processFeed : episode '" + title + "' could not be processed", e );
-					}
-					
-					ContentValues values = new ContentValues();
-					values.put( EpisodeConstants.FIELD_SHOW, show );
-					values.put( EpisodeConstants.FIELD_SHOW_KEY, showKey );
-					values.put( EpisodeConstants.FIELD_PUBLISH_DATE, entry.getPublishedDate().getTime() );
-					values.put( EpisodeConstants.FIELD_TITLE, title );
-					values.put( EpisodeConstants.FIELD_DESCRIPTION, value );
-					values.put( EpisodeConstants.FIELD_URL, address  );
-					values.put( EpisodeConstants.FIELD_TYPE, ( null != fileType ) ? fileType.getMimeType() : Resource.MP3.getMimeType() );
-					values.put( EpisodeConstants.FIELD_LENGTH, length );
-					values.put( EpisodeConstants.FIELD_FILE, filename );
-					values.put( EpisodeConstants.FIELD_VIP, ( isVip ? 1 : 0 ) );
-
-					String[] projection = new String[] { EpisodeConstants._ID };
-
-					StringBuilder sb = new StringBuilder();
-					sb.append( EpisodeConstants.FIELD_TITLE ).append( " = ?" );
-
 					String[] args = new String[] { title };
 
-					long episodeId;
+					ContentValues values = convertFeedToContentValues( entry, root, isVip );
+
 					Cursor cursor = mContext.getContentResolver().query( EpisodeConstants.CONTENT_URI, projection, sb.toString(), args, null );
 					if( cursor.moveToFirst() ) {
 						//Log.v( TAG, "processFeed : feed entry iteration, updating existing entry" );
 						
-						episodeId = cursor.getLong( cursor.getColumnIndexOrThrow( EpisodeConstants._ID ) );
-						mContext.getContentResolver().update( ContentUris.withAppendedId( EpisodeConstants.CONTENT_URI, episodeId ), values, null, null );
+						Long id = cursor.getLong( cursor.getColumnIndexOrThrow( EpisodeConstants._ID ) );
+						ops.add( 
+								ContentProviderOperation.newUpdate( ContentUris.withAppendedId( EpisodeConstants.CONTENT_URI, id ) )
+									.withValues( values )
+									.withYieldAllowed( true )
+									.build()
+							);
+
 					} else {
 						//Log.v( TAG, "processFeed : feed entry iteration, adding new entry" );
 
-						Uri programUri = mContext.getContentResolver().insert( EpisodeConstants.CONTENT_URI, values );
-						episodeId = ContentUris.parseId( programUri );
+						ops.add(  
+								ContentProviderOperation.newInsert( EpisodeConstants.CONTENT_URI )
+									.withValues( values )
+									.withYieldAllowed( true )
+									.build()
+							);
+
 					}
 					cursor.close();
+					count++;
+
+					if( count > 100 ) {
+						Log.v( TAG, "processFeed : applying batch for '" + count + "' transactions" );
+						
+						if( !ops.isEmpty() ) {
+							//Log.v( TAG, "process : applying batch '" + channel.getCallSign() + "'" );
+							
+							ContentProviderResult[] results = mContext.getContentResolver().applyBatch( KatgProvider.AUTHORITY, ops );
+							loaded += results.length;
+							
+							if( results.length > 0 ) {
+								ops.clear();
+							}
+						}
+
+						count = 0;
+					}
 
 				}
+				
+				if( !ops.isEmpty() ) {
+					Log.v( TAG, "processFeed : applying final batch for '" + count + "' transactions" );
+
+					ContentProviderResult[] results = mContext.getContentResolver().applyBatch( KatgProvider.AUTHORITY, ops );
+					loaded += results.length;
+
+					if( results.length > 0 ) {
+						ops.clear();
+					}
+				}
 			
+				Log.i( TAG, "processFeed : feed entries loaded '" + loaded + "'" );
+
 			}
 
 		}
@@ -222,32 +223,98 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 
 	// internal helpers
 	
+	private ContentValues convertFeedToContentValues( SyndEntry entry, File root, boolean isVip ) {
+		
+		String title = entry.getTitle();
+
+		String show = generateShowName( title );
+		String showKey = generateShowKey( title );
+		//Log.v( TAG, "processFeed : show=" + show + ", showKey=" + showKey );
+		
+		String value = entry.getDescription().getValue();
+		value = value.replace( "<p>", "" );
+		value = value.replace( "</p>", "" );
+		value = value.replace( "\"", "" );
+        
+		Resource fileType = null;
+		String filename = "", address = "", type = "";
+		long length = 0;
+		try {
+			SyndEnclosure enc = (SyndEnclosure) entry.getEnclosures().get( 0 );
+			
+			address = enc.getUrl();
+			type = enc.getType();
+			length = enc.getLength();
+			//Log.d( TAG, "processFeed : enc=[ address=" + address + ", type=" + type + ", length=" + length + "]" );
+			
+			String encFilename = address.substring( address.lastIndexOf( '/' ) + 1 );
+			if( isVip ) {
+				encFilename = encFilename.substring( 0, encFilename.indexOf( '?' ) );
+				fileType = Resource.findByExtension( encFilename.substring( encFilename.indexOf( "." ) + 1 ) );
+			}
+			
+            File episodeDir = new File( root, show );
+            episodeDir.mkdirs();
+
+			File f = new File( episodeDir, encFilename );
+			if( f.exists() ) {
+				filename = f.getAbsolutePath();
+
+				//Log.d( TAG, "processFeed : filename=" + filename );
+			}
+		} catch( Exception e ) {
+			Log.w( TAG, "processFeed : episode '" + title + "' could not be processed", e );
+		}
+		
+		ContentValues values = new ContentValues();
+		values.put( EpisodeConstants.FIELD_SHOW, show );
+		values.put( EpisodeConstants.FIELD_SHOW_KEY, showKey );
+		values.put( EpisodeConstants.FIELD_PUBLISH_DATE, entry.getPublishedDate().getTime() );
+		values.put( EpisodeConstants.FIELD_TITLE, title );
+		values.put( EpisodeConstants.FIELD_DESCRIPTION, value );
+		values.put( EpisodeConstants.FIELD_URL, address  );
+		values.put( EpisodeConstants.FIELD_TYPE, ( null != fileType ) ? fileType.getMimeType() : Resource.MP3.getMimeType() );
+		values.put( EpisodeConstants.FIELD_LENGTH, length );
+		values.put( EpisodeConstants.FIELD_FILE, filename );
+		values.put( EpisodeConstants.FIELD_VIP, ( isVip ? 1 : 0 ) );
+
+		return values;
+	}
+	
 	private String generateShowKey( String title ) {
 		
-		String show = "KATG";
+		String show = Show.KATG.getKey();
 		
-		if( title.startsWith( "WMN" ) ) {
-			show = "WMN";
-		}
-		
-		if( title.startsWith( "MNIK" ) ) {
-			show = "MNIK";
-		}
-
-		if( title.startsWith( "TTSWD" ) ) {
-			show = "TTSWD";
+		if( title.startsWith( Show.WMN.getKey() ) ) {
+			show = Show.WMN.getKey();
 		}
 		
-		if( title.startsWith( "INTERNment" ) ) {
-			show = "INTERNment";
+		if( title.startsWith( Show.MNIK.getKey() ) ) {
+			show = Show.MNIK.getKey();
 		}
 
-		if( title.startsWith( "KATGtv" ) ) {
-			show = "KATGtv";
+		if( title.startsWith( Show.TTSWD.getKey() ) ) {
+			show = Show.TTSWD.getKey();
+		}
+		
+		if( title.startsWith( Show.INTERNMENT.getKey() ) ) {
+			show = Show.INTERNMENT.getKey();
 		}
 
-		if( title.startsWith( "Beginnings" ) ) {
-			show = "Beginnings";
+		if( title.startsWith( Show.BROLO.getKey() ) ) {
+			show = Show.BROLO.getKey();
+		}
+		
+		if( title.startsWith( Show.HENNY.getKey() ) ) {
+			show = Show.HENNY.getKey();
+		}
+		
+		if( title.startsWith( Show.KATG_TV.getKey() ) ) {
+			show = Show.KATG_TV.getKey();
+		}
+
+		if( title.startsWith( Show.BEGINNINGS.getKey() ) ) {
+			show = Show.BEGINNINGS.getKey();
 		}
 
 		return show;
@@ -255,30 +322,38 @@ public class EpisodeProcessor extends AbstractKatgProcessor {
 
 	private String generateShowName( String title ) {
 		
-		String show = "KATG";
+		String show = Show.KATG.getShowName();
 		
-		if( title.startsWith( "WMN" ) ) {
-			show = "What's My Name";
-		}
-		
-		if( title.startsWith( "MNIK" ) ) {
-			show = "My Name Is Keith";
-		}
-
-		if( title.startsWith( "TTSWD" ) ) {
-			show = "That's the Show with Danny";
+		if( title.startsWith( Show.WMN.getKey() ) ) {
+			show = Show.WMN.getShowName();
 		}
 		
-		if( title.startsWith( "INTERNment" ) ) {
-			show = "INTERNment";
+		if( title.startsWith( Show.MNIK.getKey() ) ) {
+			show = Show.MNIK.getShowName();
 		}
 
-		if( title.startsWith( "KATGtv" ) ) {
-			show = "KATGtv";
+		if( title.startsWith( Show.TTSWD.getKey() ) ) {
+			show = Show.TTSWD.getShowName();
+		}
+		
+		if( title.startsWith( Show.INTERNMENT.getKey() ) ) {
+			show = Show.INTERNMENT.getShowName();
 		}
 
-		if( title.startsWith( "Beginnings" ) ) {
-			show = "Beginnings";
+		if( title.startsWith( Show.KATG_TV.getKey() ) ) {
+			show = Show.KATG_TV.getShowName();
+		}
+
+		if( title.startsWith( Show.BROLO.getKey() ) ) {
+			show = Show.BROLO.getShowName();
+		}
+		
+		if( title.startsWith( Show.HENNY.getKey() ) ) {
+			show = Show.HENNY.getShowName();
+		}
+		
+		if( title.startsWith( Show.BEGINNINGS.getKey() ) ) {
+			show = Show.BEGINNINGS.getShowName();
 		}
 
 		return show;

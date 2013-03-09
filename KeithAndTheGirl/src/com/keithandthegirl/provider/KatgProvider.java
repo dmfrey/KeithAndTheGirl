@@ -3,8 +3,13 @@
  */
 package com.keithandthegirl.provider;
 
+import java.util.ArrayList;
+
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.OperationApplicationException;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -205,6 +210,29 @@ public class KatgProvider extends AbstractKatgContentProvider {
 				Log.w( TAG, "update : exit, unknown URI" );
 
 				throw new IllegalArgumentException( "Unknown URI: " + uri );
+		}
+
+	}
+
+	/* (non-Javadoc)
+	 * @see android.content.ContentProvider#applyBatch(java.util.ArrayList)
+	 */
+	@Override
+	public ContentProviderResult[] applyBatch( ArrayList<ContentProviderOperation> operations )	 throws OperationApplicationException {
+		//Log.v( TAG, "applyBatch : enter" );
+
+		final SQLiteDatabase db = database.getWritableDatabase();
+		db.beginTransaction();
+		try {
+			final int numOperations = operations.size();
+			final ContentProviderResult[] results = new ContentProviderResult[ numOperations ];
+			for( int i = 0; i < numOperations; i++ ) {
+				results[ i ] = operations.get( i ).apply( this, results, i );
+			}
+			db.setTransactionSuccessful();
+			return results;
+		} finally {
+			db.endTransaction();
 		}
 
 	}

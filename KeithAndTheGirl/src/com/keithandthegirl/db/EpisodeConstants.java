@@ -39,6 +39,8 @@ public class EpisodeConstants implements BaseColumns {
 		MNIK( "MNIK", "My Name Is Keith" ),
 		TTSWD( "TTSWD", "That's The Show With Danny" ),
 		INTERNMENT( "INTERNment", "INTERNment" ),
+		BROLO( "BROLO", "The Brother Love Owwr!"),
+		HENNY( "HENNY", "Bottoms Up with Hennessy" ),
 		KATG_TV( "KATGtv", "KATGtv" ),
 		BEGINNINGS( "Beginnings", "Beginnings" );
 		
